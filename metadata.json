@@ -1,0 +1,5 @@
+{
+  "name": "AI Pulse Daily",
+  "description": "A one-stop AI industry news aggregator that uses Gemini to automatically classify, summarize, and deliver the most critical AI updates daily.",
+  "requestFramePermissions": []
+}
