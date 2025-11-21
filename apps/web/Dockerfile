@@ -7,8 +7,8 @@ RUN corepack enable && corepack prepare pnpm@9.15.0 --activate
 # Set working directory
 WORKDIR /app
 
-# Copy root package files
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+# Copy root package files and pnpm config
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 
 # Copy all workspace packages
 COPY apps/web/package.json ./apps/web/
@@ -42,11 +42,11 @@ FROM dependencies AS build
 
 # Set build arguments
 ARG VITE_API_URL
-ARG VITE_GEMINI_API_KEY
+ARG VITE_GLM_API_KEY
 
 # Set environment variables for build
 ENV VITE_API_URL=${VITE_API_URL}
-ENV VITE_GEMINI_API_KEY=${VITE_GEMINI_API_KEY}
+ENV VITE_GLM_API_KEY=${VITE_GLM_API_KEY}
 
 # Copy source code
 COPY apps/web ./apps/web

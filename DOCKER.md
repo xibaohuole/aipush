@@ -33,7 +33,7 @@ chmod +x scripts/docker-dev.sh
 
 **重要**: 编辑 `.env.local` 并设置必要的值：
 ```env
-GEMINI_API_KEY=your-actual-gemini-api-key-here
+GLM_API_KEY=your-actual-glm-api-key-here
 POSTGRES_PASSWORD=change-this-password
 JWT_SECRET=your-secret-key-min-32-characters-long
 ```

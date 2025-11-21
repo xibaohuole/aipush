@@ -3,7 +3,8 @@ import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), '');
+  // Load env files from the apps/web directory (not monorepo root)
+  const env = loadEnv(mode, __dirname, '');
 
   return {
     base: mode === 'production' ? '/aipush/' : '/',
@@ -13,8 +14,9 @@ export default defineConfig(({ mode }) => {
     },
     plugins: [react()],
     define: {
-      'process.env.API_KEY': JSON.stringify(env.VITE_GEMINI_API_KEY || env.GEMINI_API_KEY),
-      'process.env.GEMINI_API_KEY': JSON.stringify(env.VITE_GEMINI_API_KEY || env.GEMINI_API_KEY),
+      'process.env.API_KEY': JSON.stringify(env.VITE_GLM_API_KEY || env.GLM_API_KEY),
+      'process.env.GLM_API_KEY': JSON.stringify(env.VITE_GLM_API_KEY || env.GLM_API_KEY),
+      'import.meta.env.VITE_GLM_API_KEY': JSON.stringify(env.VITE_GLM_API_KEY),
       'import.meta.env.VITE_API_URL': JSON.stringify(env.VITE_API_URL || 'http://localhost:4000')
     },
     resolve: {

@@ -27,7 +27,7 @@ const DailyBrief: React.FC<DailyBriefProps> = ({ summary, isLoading, onGenerate 
         </div>
         <h2 className="text-2xl font-bold text-white mb-2">Ready to Brief?</h2>
         <p className="text-slate-400 max-w-md mb-8">
-          Generate your personalized daily summary using Gemini 2.5. It scans all collected feeds and extracts critical signals from the noise.
+          Generate your personalized daily summary using GLM AI. It scans all collected feeds and extracts critical signals from the noise.
         </p>
         <button 
           onClick={onGenerate}

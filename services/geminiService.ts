@@ -1,115 +1,81 @@
 
-import { GoogleGenAI } from "@google/genai";
 import { NewsItem, NewsCategory, DailySummary, Region } from "../types";
 import { MOCK_SOURCES, RAW_NEWS_FEED, MOCK_COMMENTS } from "../constants";
+import { callGLMOptimized, batchProcess, PromptOptimizer, TokenTracker } from "./tokenOptimizer";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Legacy function for backward compatibility
+async function callGLM(prompt: string, useJson: boolean = false): Promise<string> {
+  return callGLMOptimized(prompt, { useJson });
+}
 
 /**
  * Fetches real-time news using Google Search Grounding.
  * Falls back to the static RAW_NEWS_FEED if search fails.
  */
 export const fetchRealtimeNews = async (): Promise<NewsItem[]> => {
-  if (!process.env.API_KEY) {
-    console.error("API Key is missing");
-    return [];
+  const API_KEY = process.env.GLM_API_KEY || process.env.VITE_GLM_API_KEY || '';
+  
+  if (!API_KEY) {
+    console.error("GLM API Key is missing");
+    return processRawNews(RAW_NEWS_FEED);
   }
 
   try {
-    // STRICT LIMIT: 8-12 items
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: "List exactly 10 of the most critical, high-impact Artificial Intelligence news headlines from the last 24 hours. Focus on Funding, Research, Product launches, and Policy. Include 1 viral/meme topic if available.",
-      config: {
-        tools: [{ googleSearch: {} }],
-      },
+    const today = new Date().toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
     });
 
-    const text = response.text || "";
-    const lines = text.split('\n');
-    const realHeadlines = lines
-      .map(line => line.trim())
-      .filter(line => /^\d+[\.\)]|^\*|^-/.test(line))
-      .map(line => line.replace(/^[\d\-\*\•\)]+\.?\s*/, ''))
-      .filter(line => line.length > 10);
+    // 使用优化的prompt
+    const prompt = `Generate 8-12 AI news headlines for ${today}.
+Focus: funding, research, product launches, policy, 1 viral topic.
+Return JSON: [{"headline":"","source":"","url":"","summary":""}]`;
 
-    const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
-    const webSources = groundingChunks
-      .map(chunk => chunk.web?.uri)
-      .filter((uri): uri is string => !!uri);
+    const text = await callGLMOptimized(prompt, { 
+      useJson: true, 
+      maxTokens: 500,
+      priorityModel: 'glm-4-flash' // 使用最便宜的模型
+    });
+    
+    const data = JSON.parse(text);
+    const headlines = data.headlines || data || [];
 
-    if (realHeadlines.length > 0) {
-      const processedItems = await processRawNews(realHeadlines.slice(0, 12));
-      
-      return processedItems.map((item, index) => {
-        const sourceIndex = index < webSources.length ? index : index % webSources.length;
-        const mainSource = webSources[sourceIndex];
-        const relatedSources = webSources.slice(Math.max(0, sourceIndex - 1), sourceIndex + 2);
-        
-        return {
-          ...item,
-          url: mainSource || item.url,
-          citations: relatedSources.length > 0 ? relatedSources : item.citations
-        };
-      });
+    if (Array.isArray(headlines) && headlines.length > 0) {
+      const realHeadlines = headlines.map((item: any) => item.headline || item.title || item).filter(Boolean);
+      return processRawNews(realHeadlines.slice(0, 12));
     }
   } catch (error) {
-    console.error("Error fetching realtime news (grounding):", error);
+    console.error("Error fetching realtime news (GLM):", error);
   }
 
   return processRawNews(RAW_NEWS_FEED);
 };
 
 export const processRawNews = async (rawHeadlines: string[]): Promise<NewsItem[]> => {
-  if (!process.env.API_KEY || rawHeadlines.length === 0) return [];
-
-  const CHUNK_SIZE = 4;
-  const batches = [];
-  for (let i = 0; i < rawHeadlines.length; i += CHUNK_SIZE) {
-    batches.push(rawHeadlines.slice(i, i + CHUNK_SIZE));
-  }
+  if (rawHeadlines.length === 0) return [];
 
   try {
-    const chunkResults = await Promise.all(batches.map(async (batch, batchIndex) => {
-      const prompt = `
-        You are a cynical, high-level AI analyst. Analyze these headlines.
-        
-        Headlines:
-        ${batch.map((h, i) => `${i + 1}. ${h}`).join('\n')}
-
-        Return a JSON object with a "news" array.
-        Schema:
-        {
-          "title": "String (Catchy, click-worthy, max 10 words)",
-          "summary": "String (Extremely concise, 3-5 lines max. Just the facts.)",
-          "whyItMatters": "String (One sentence explaining the strategic impact/consequence. Start with 'Why it matters: ...')",
-          "category": "String (Funding, Research, Product, Policy, Ethics, Robotics, Lifestyle, Entertainment, Meme, Other)",
-          "region": "String (Global, North America, Europe, Asia, Other)",
-          "impactScore": "Number (1-10)",
-          "source": "String (Publisher)"
-        }
-        
-        Do NOT format as markdown. Return pure JSON.
-      `;
-
+    // 使用批量处理优化器
+    const chunkResults = await batchProcess(rawHeadlines, async (batch) => {
+      // 使用优化的prompt
+      const prompt = PromptOptimizer.optimizeNewsAnalysis(batch);
+      
       try {
-        const response = await ai.models.generateContent({
-          model: "gemini-2.5-flash",
-          contents: prompt,
-          config: {
-            responseMimeType: "application/json",
-          }
+        const text = await callGLMOptimized(prompt, { 
+          useJson: true, 
+          maxTokens: 800,
+          priorityModel: 'glm-4-flash' // 批量处理用便宜模型
         });
-
-        const text = response.text;
+        
         if (!text) return [];
         const data = JSON.parse(text);
         return Array.isArray(data.news) ? data.news : [];
       } catch (err) {
-        console.warn(`Batch ${batchIndex} processing failed:`, err);
+        console.warn(`Batch processing failed:`, err);
         return [];
       }
-    }));
+    }, 4); // 批量大小为4
 
     const allItems = chunkResults.flat();
 
@@ -125,47 +91,29 @@ export const processRawNews = async (rawHeadlines: string[]): Promise<NewsItem[]
       url: `https://www.google.com/search?q=${encodeURIComponent(item.title || "")}`,
       timestamp: new Date().toISOString(),
       citations: [],
-      comments: MOCK_COMMENTS.sort(() => 0.5 - Math.random()).slice(0, 2) // Random mock comments
+      comments: MOCK_COMMENTS.sort(() => 0.5 - Math.random()).slice(0, 2)
     }));
 
   } catch (error) {
-    console.error("Error processing news with Gemini:", error);
+    console.error("Error processing news with GLM:", error);
     return [];
   }
 };
 
 export const generateDailyBriefing = async (newsItems: NewsItem[], language: string = 'English'): Promise<DailySummary | null> => {
-  if (!process.env.API_KEY || newsItems.length === 0) return null;
-
-  const context = newsItems.slice(0, 10).map(n => `- ${n.title}: ${n.whyItMatters}`).join('\n');
-
-  const prompt = `
-    Write a "Daily AI Pulse" audio script summary.
-    Language: ${language}.
-    Style: Professional podcast host, energetic but concise.
-    
-    Items:
-    ${context}
-
-    Return JSON:
-    {
-      "headline": "String (Title)",
-      "keyTakeaways": ["String", "String", "String"],
-      "bodyContent": "String (Podcast script format)",
-      "trendingTopics": ["String", "String"]
-    }
-  `;
+  if (newsItems.length === 0) return null;
 
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-      }
+    // 使用优化的prompt
+    const prompt = PromptOptimizer.optimizeSummary(newsItems);
+    
+    const text = await callGLMOptimized(prompt, { 
+      useJson: true, 
+      maxTokens: 1000,
+      priorityModel: 'glm-4.5-air' // 摘要用中等成本模型
     });
-
-    const summary = JSON.parse(response.text || "{}");
+    
+    const summary = JSON.parse(text || "{}");
     return {
       ...summary,
       date: new Date().toLocaleDateString()
@@ -177,13 +125,14 @@ export const generateDailyBriefing = async (newsItems: NewsItem[], language: str
 };
 
 export const translateText = async (text: string, targetLanguage: string): Promise<string> => {
-  if (!process.env.API_KEY || !text || targetLanguage === 'English') return text;
+  if (!text || targetLanguage === 'English') return text;
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: `Translate to Native ${targetLanguage} (avoid translationese, make it sound local): "${text}"`,
+    // 使用优化的翻译prompt
+    const prompt = PromptOptimizer.optimizeTranslation(text, targetLanguage);
+    return await callGLMOptimized(prompt, { 
+      maxTokens: 200,
+      priorityModel: 'glm-4-flash' // 翻译用最便宜的模型
     });
-    return response.text?.trim() || text;
   } catch (error) {
     return text;
   }
@@ -191,18 +140,20 @@ export const translateText = async (text: string, targetLanguage: string): Promi
 
 // New: Ask AI about a specific news item
 export const askAI = async (question: string, context: NewsItem): Promise<string> => {
-  if (!process.env.API_KEY) return "AI unavailable.";
   try {
-     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: `Context: News Article titled "${context.title}". Summary: "${context.summary}". Why it matters: "${context.whyItMatters}".
-      
-      User Question: "${question}"
-      
-      Answer concisely in the same language as the question.`,
+    const contextText = `Title: ${context.title}. Summary: ${context.summary}. Why it matters: ${context.whyItMatters}`;
+    
+    // 使用优化的问答prompt
+    const prompt = PromptOptimizer.optimizeQA(question, contextText);
+    
+    return await callGLMOptimized(prompt, { 
+      maxTokens: 300,
+      priorityModel: 'glm-4-flash' // 问答用最便宜的模型
     });
-    return response.text || "No answer generated.";
   } catch (e) {
     return "Error reaching AI.";
   }
 }
+
+// 导出token统计功能
+export { TokenTracker };

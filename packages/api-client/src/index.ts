@@ -266,29 +266,50 @@ export function createApiClient(baseURL?: string): ApiClient {
 // Export singleton instance
 export const apiClient = createApiClient();
 
-// ==================== Gemini Service (Legacy - to be migrated to backend) ====================
+// ==================== GLM Service (Legacy - to be migrated to backend) ====================
 
-import { GoogleGenAI } from '@google/genai';
 import type { NewsCategory, Region } from '@aipush/types';
 
-export class GeminiService {
-  private ai: GoogleGenAI;
+export class GLMService {
+  private apiKey: string;
+  private apiUrl = 'https://open.bigmodel.cn/api/paas/v4/chat/completions';
 
   constructor(apiKey: string) {
-    this.ai = new GoogleGenAI({ apiKey });
+    this.apiKey = apiKey;
+  }
+
+  private async callGLM(prompt: string): Promise<string> {
+    const response = await fetch(this.apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'glm-4',
+        messages: [
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        temperature: 0.7,
+        top_p: 0.9,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`GLM API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.choices[0].message.content;
   }
 
   async fetchRealtimeNews(): Promise<NewsItem[]> {
     // This will be moved to backend, keeping here for compatibility
     try {
-      const model = this.ai.getGenerativeModel({ model: 'gemini-2.5-flash' });
-      const searchTool = { googleSearch: {} };
-
-      const result = await model.generateContent({
-        contents: [{
-          role: 'user',
-          parts: [{
-            text: `Find the top 8-12 most impactful AI news from the last 24 hours. Focus on:
+      const prompt = `Find the top 8-12 most impactful AI news from the last 24 hours. Focus on:
 - Funding rounds & acquisitions
 - Research breakthroughs
 - Major product launches
@@ -304,36 +325,29 @@ Return in JSON format:
       "summary": "..."
     }
   ]
-}`
-          }]
-        }],
-        tools: [searchTool],
-        toolConfig: { functionCallingConfig: { mode: 'AUTO' } }
-      });
+}`;
 
+      const result = await this.callGLM(prompt);
       // Process result and return news items
       // (Implementation details omitted for brevity)
       return [];
     } catch (error) {
-      console.error('Failed to fetch news from Gemini:', error);
+      console.error('Failed to fetch news from GLM:', error);
       return [];
     }
   }
 
   async translateText(text: string, targetLang: string): Promise<string> {
-    const model = this.ai.getGenerativeModel({ model: 'gemini-2.5-flash' });
-    const result = await model.generateContent(`Translate to ${targetLang}: ${text}`);
-    return result.response.text();
+    const prompt = `Translate to ${targetLang}: ${text}`;
+    return await this.callGLM(prompt);
   }
 
   async askAI(question: string, context: string): Promise<string> {
-    const model = this.ai.getGenerativeModel({ model: 'gemini-2.5-flash' });
     const prompt = `Context: ${context}\n\nQuestion: ${question}\n\nAnswer:`;
-    const result = await model.generateContent(prompt);
-    return result.response.text();
+    return await this.callGLM(prompt);
   }
 }
 
-export function createGeminiService(apiKey: string): GeminiService {
-  return new GeminiService(apiKey);
+export function createGLMService(apiKey: string): GLMService {
+  return new GLMService(apiKey);
 }

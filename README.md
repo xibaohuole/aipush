@@ -142,8 +142,8 @@ JWT_SECRET="your-secret-key"
 GOOGLE_CLIENT_ID="your-client-id"
 GOOGLE_CLIENT_SECRET="your-client-secret"
 
-# Gemini AI
-GEMINI_API_KEY="your-gemini-api-key"
+# GLM AI (智谱AI)
+GLM_API_KEY="your-glm-api-key"
 
 # CORS
 CORS_ORIGIN="http://localhost:3000"

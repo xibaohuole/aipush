@@ -30,9 +30,9 @@ export default () => ({
     callbackUrl: process.env.GOOGLE_CALLBACK_URL || 'http://localhost:4000/api/auth/google/callback',
   },
 
-  // Gemini AI
-  gemini: {
-    apiKey: process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY,
+  // GLM AI (智谱AI)
+  glm: {
+    apiKey: process.env.GLM_API_KEY || process.env.VITE_GLM_API_KEY,
   },
 
   // CORS

@@ -7,8 +7,8 @@ RUN corepack enable && corepack prepare pnpm@9.15.0 --activate
 # Set working directory
 WORKDIR /app
 
-# Copy root package files
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+# Copy root package files and pnpm config
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 
 # Copy all workspace packages
 COPY apps/api/package.json ./apps/api/
@@ -20,8 +20,11 @@ COPY packages/config/package.json ./packages/config/
 # ==================== Dependencies Stage ====================
 FROM base AS dependencies
 
-# Install all dependencies
+# Install all dependencies (including dev dependencies for Prisma)
 RUN pnpm install --frozen-lockfile
+
+# Install openssl for Prisma (Alpine requirement)
+RUN apk add --no-cache openssl
 
 # ==================== Development Stage ====================
 FROM dependencies AS development
@@ -32,14 +35,14 @@ COPY packages ./packages
 COPY database ./database
 COPY turbo.json ./
 
-# Generate Prisma Client
-RUN cd apps/api && pnpm prisma:generate
+# Generate Prisma Client (prisma is hoisted to root node_modules due to shamefully-hoist=true)
+RUN npx prisma generate --schema=database/prisma/schema.prisma
 
 # Expose port
 EXPOSE 4000
 
-# Start development server
-CMD ["pnpm", "--filter", "@aipush/api", "dev"]
+# Start development server (use node_modules from root due to hoisting)
+CMD ["sh", "-c", "cd apps/api && node ../../node_modules/.bin/ts-node src/main.ts"]
 
 # ==================== Build Stage ====================
 FROM dependencies AS build
@@ -50,8 +53,8 @@ COPY packages ./packages
 COPY database ./database
 COPY turbo.json ./
 
-# Generate Prisma Client
-RUN cd apps/api && pnpm prisma:generate
+# Generate Prisma Client (prisma is hoisted to root node_modules due to shamefully-hoist=true)
+RUN npx prisma generate --schema=database/prisma/schema.prisma
 
 # Build the application
 RUN pnpm --filter @aipush/api build

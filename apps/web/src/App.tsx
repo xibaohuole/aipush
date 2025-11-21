@@ -6,8 +6,22 @@ import DailyBrief from './components/DailyBrief';
 import Settings from './components/Settings';
 import TrendingList from './components/TrendingList';
 import AddNewsModal from './components/AddNewsModal';
+import DashboardStats from './components/DashboardStats';
 import { ViewState, NewsItem, DailySummary, NewsCategory, Region, ViewMode } from './types';
 import { fetchRealtimeNews, generateDailyBriefing, askAI } from './services/geminiService';
+import {
+  getBookmarks,
+  saveBookmarks,
+  getLanguage,
+  saveLanguage,
+  getViewMode,
+  saveViewMode,
+  getCustomNews,
+  saveCustomNews,
+  getCachedNews,
+  saveCachedNews,
+  isCacheValid,
+} from './utils/localStorage';
 import {
   Search,
   RefreshCw,
@@ -35,9 +49,10 @@ const App: React.FC = () => {
   // Filters & View Settings
   const [selectedCategory, setSelectedCategory] = useState<NewsCategory | 'All'>('All');
   const [selectedRegion, setSelectedRegion] = useState<Region | 'All'>('All');
-  const [targetLanguage, setTargetLanguage] = useState<string>('English');
-  const [viewMode, setViewMode] = useState<ViewMode>('CARD');
+  const [targetLanguage, setTargetLanguage] = useState<string>(() => getLanguage());
+  const [viewMode, setViewMode] = useState<ViewMode>(() => getViewMode());
   const [showBookmarksOnly, setShowBookmarksOnly] = useState(false);
+  const [searchQuery, setSearchQuery] = useState<string>('');
 
   // Modals & Menus
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -52,7 +67,7 @@ const App: React.FC = () => {
   const [isAsking, setIsAsking] = useState(false);
 
   // Data
-  const [bookmarkedItems, setBookmarkedItems] = useState<Set<string>>(new Set());
+  const [bookmarkedItems, setBookmarkedItems] = useState<Set<string>>(() => getBookmarks());
   const [timeLeft, setTimeLeft] = useState('');
 
   const t = UI_TRANSLATIONS[targetLanguage] || UI_TRANSLATIONS['English'];
@@ -82,13 +97,43 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const loadData = async () => {
+      const customItems = getCustomNews();
+
+      // Try to use cached news first
+      const cached = getCachedNews();
+      if (cached && isCacheValid()) {
+        console.log('Using cached news data');
+        setNewsItems([...customItems, ...cached]);
+        return;
+      }
+
+      // Cache miss or expired - fetch fresh data
       setIsProcessing(true);
       const items = await fetchRealtimeNews();
-      setNewsItems(items);
+
+      // Save to cache
+      saveCachedNews(items);
+
+      setNewsItems([...customItems, ...items]);
       setIsProcessing(false);
     };
     loadData();
   }, []);
+
+  // Save bookmarks whenever they change
+  useEffect(() => {
+    saveBookmarks(bookmarkedItems);
+  }, [bookmarkedItems]);
+
+  // Save language preference
+  useEffect(() => {
+    saveLanguage(targetLanguage);
+  }, [targetLanguage]);
+
+  // Save view mode preference
+  useEffect(() => {
+    saveViewMode(viewMode);
+  }, [viewMode]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -104,6 +149,13 @@ const App: React.FC = () => {
     setIsProcessing(true);
     const items = await fetchRealtimeNews();
     const customItems = newsItems.filter((n) => n.isCustom);
+
+    // Update custom news in localStorage
+    saveCustomNews(customItems);
+
+    // Save fresh news to cache
+    saveCachedNews(items);
+
     setNewsItems([...customItems, ...items]);
     setIsProcessing(false);
   };
@@ -127,7 +179,14 @@ const App: React.FC = () => {
     const matchesCategory = selectedCategory === 'All' || item.category === selectedCategory;
     const matchesRegion = selectedRegion === 'All' || item.region === selectedRegion;
     const matchesBookmark = showBookmarksOnly ? bookmarkedItems.has(item.id) : true;
-    return matchesCategory && matchesRegion && matchesBookmark;
+
+    // Search functionality - search in title, summary, and source
+    const matchesSearch = searchQuery.trim() === '' ||
+      item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.summary.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.source.toLowerCase().includes(searchQuery.toLowerCase());
+
+    return matchesCategory && matchesRegion && matchesBookmark && matchesSearch;
   });
 
   return (
@@ -226,12 +285,22 @@ const App: React.FC = () => {
 
           <div className="hidden md:flex items-center space-x-6">
             <div className="relative group">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-cyan-400 transition" />
               <input
                 type="text"
                 placeholder={t.header.searchPlaceholder}
-                className="bg-slate-900/50 border border-slate-700 rounded-full pl-10 pr-4 py-2 text-sm text-slate-200 focus:ring-2 focus:ring-cyan-500 w-80"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="bg-slate-900/50 border border-slate-700 rounded-full pl-10 pr-4 py-2 text-sm text-slate-200 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 w-80 transition-all placeholder-slate-500"
               />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-white transition"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
             </div>
 
             {/* Countdown Timer */}
@@ -344,6 +413,9 @@ const App: React.FC = () => {
               </div>
 
               <div className="p-6">
+                {/* Dashboard Statistics */}
+                {newsItems.length > 0 && <DashboardStats newsItems={filteredNews} />}
+
                 {newsItems.length === 0 && !isProcessing ? (
                   <div className="text-center py-20">
                     <p className="text-slate-500">{t.empty.noNews}</p>
