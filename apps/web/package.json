@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "type-check": "tsc --noEmit",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "test": "echo \"No tests configured yet\"",
     "clean": "rm -rf dist .turbo node_modules"
   },
   "dependencies": {
