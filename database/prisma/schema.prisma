@@ -1,0 +1,409 @@
+// This is your Prisma schema file
+// Learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["fullTextSearch", "fullTextIndex"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== Enums ====================
+
+enum UserRole {
+  user
+  admin
+  moderator
+  editor
+
+  @@map("user_role")
+}
+
+enum NotificationType {
+  email
+  push
+  in_app
+
+  @@map("notification_type")
+}
+
+enum NotificationFrequency {
+  daily
+  realtime
+  weekly
+
+  @@map("notification_frequency")
+}
+
+enum NewsCategory {
+  research
+  product
+  finance
+  policy
+  ethics
+  robotics
+  lifestyle
+  entertainment
+  meme
+  other
+
+  @@map("news_category")
+}
+
+enum Region {
+  global
+  north_america
+  europe
+  asia
+  other
+
+  @@map("region")
+}
+
+enum ViewMode {
+  card
+  list
+
+  @@map("view_mode")
+}
+
+enum ThemeMode {
+  light
+  dark
+  auto
+
+  @@map("theme_mode")
+}
+
+enum ActivityEventType {
+  view
+  click
+  bookmark
+  share
+  comment
+
+  @@map("activity_event_type")
+}
+
+enum SharePlatform {
+  twitter
+  linkedin
+  facebook
+  email
+  link
+
+  @@map("share_platform")
+}
+
+enum ModeratorActionType {
+  approve
+  reject
+  edit
+  delete
+  pin
+
+  @@map("moderator_action_type")
+}
+
+enum EntityType {
+  news
+  comment
+  user
+
+  @@map("entity_type")
+}
+
+// ==================== Models ====================
+
+model User {
+  id            String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  email         String    @unique @db.VarChar(255)
+  username      String    @unique @db.VarChar(50)
+  passwordHash  String    @map("password_hash") @db.VarChar(255)
+  displayName   String?   @map("display_name") @db.VarChar(100)
+  avatarUrl     String?   @map("avatar_url")
+  role          UserRole  @default(user)
+  emailVerified Boolean   @default(false) @map("email_verified")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  lastLoginAt   DateTime? @map("last_login_at")
+  deletedAt     DateTime? @map("deleted_at")
+
+  // Relations
+  preferences      UserPreferences?
+  bookmarks        Bookmark[]
+  comments         Comment[]
+  commentLikes     CommentLike[]
+  shares           Share[]
+  activities       UserActivity[]
+  notifications    Notification[]
+  moderatorActions ModeratorAction[]
+  refreshTokens    RefreshToken[]
+  apiKeys          ApiKey[]
+  submittedNews    News[]            @relation("SubmittedBy")
+
+  @@index([email])
+  @@index([username])
+  @@index([role])
+  @@index([createdAt(sort: Desc)])
+  @@map("users")
+}
+
+model UserPreferences {
+  userId           String                 @id @map("user_id") @db.Uuid
+  emailNotification Boolean               @default(true) @map("email_notification")
+  pushNotification Boolean                @default(false) @map("push_notification")
+  frequency        NotificationFrequency  @default(daily)
+  categories       NewsCategory[]
+  regions          Region[]
+  language         String                 @default("en") @db.VarChar(10)
+  theme            ThemeMode              @default(auto)
+  viewMode         ViewMode               @default(card) @map("view_mode")
+  compactMode      Boolean                @default(false) @map("compact_mode")
+  fontSize         String                 @default("medium") @map("font_size") @db.VarChar(10)
+  autoRefresh      Boolean                @default(true) @map("auto_refresh")
+  refreshInterval  Int                    @default(30) @map("refresh_interval")
+  createdAt        DateTime               @default(now()) @map("created_at")
+  updatedAt        DateTime               @updatedAt @map("updated_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_preferences")
+}
+
+model News {
+  id             String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  title          String        @db.VarChar(255)
+  summary        String
+  whyItMatters   String?       @map("why_it_matters")
+  source         String?       @db.VarChar(100)
+  sourceUrl      String        @unique @map("source_url")
+  category       NewsCategory
+  region         Region        @default(global)
+  impactScore    Int?          @map("impact_score")
+  publishedAt    DateTime      @map("published_at")
+  fetchedAt      DateTime      @default(now()) @map("fetched_at")
+  isCustom       Boolean       @default(false) @map("is_custom")
+  submittedBy    String?       @map("submitted_by") @db.Uuid
+  imageUrl       String?       @map("image_url")
+  tags           String[]
+  viewCount      Int           @default(0) @map("view_count")
+  bookmarkCount  Int           @default(0) @map("bookmark_count")
+  shareCount     Int           @default(0) @map("share_count")
+  commentCount   Int           @default(0) @map("comment_count")
+  citations      String[]
+  metadata       Json          @default("{}")
+  isApproved     Boolean       @default(true) @map("is_approved")
+  isTrending     Boolean       @default(false) @map("is_trending")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+  deletedAt      DateTime?     @map("deleted_at")
+
+  // Relations
+  submitter User?     @relation("SubmittedBy", fields: [submittedBy], references: [id], onDelete: SetNull)
+  bookmarks Bookmark[]
+  comments  Comment[]
+  shares    Share[]
+
+  @@index([category])
+  @@index([region])
+  @@index([publishedAt(sort: Desc)])
+  @@index([impactScore(sort: Desc)])
+  @@index([isTrending])
+  @@map("news")
+}
+
+model Bookmark {
+  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  newsId    String   @map("news_id") @db.Uuid
+  notes     String?
+  tags      String[]
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  news News @relation(fields: [newsId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, newsId])
+  @@index([userId])
+  @@index([newsId])
+  @@index([createdAt(sort: Desc)])
+  @@map("bookmarks")
+}
+
+model Comment {
+  id        String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  newsId    String    @map("news_id") @db.Uuid
+  parentId  String?   @map("parent_id") @db.Uuid
+  content   String
+  likes     Int       @default(0)
+  isPinned  Boolean   @default(false) @map("is_pinned")
+  isEdited  Boolean   @default(false) @map("is_edited")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  // Relations
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  news         News          @relation(fields: [newsId], references: [id], onDelete: Cascade)
+  parent       Comment?      @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies      Comment[]     @relation("CommentReplies")
+  commentLikes CommentLike[]
+
+  @@index([newsId])
+  @@index([userId])
+  @@index([parentId])
+  @@index([createdAt(sort: Desc)])
+  @@map("comments")
+}
+
+model CommentLike {
+  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  commentId String   @map("comment_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, commentId])
+  @@index([commentId])
+  @@index([userId])
+  @@map("comment_likes")
+}
+
+model DailySummary {
+  id             String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  date           DateTime @unique @db.Date
+  headline       String   @db.VarChar(255)
+  keyTakeaways   String[] @map("key_takeaways")
+  bodyContent    String   @map("body_content")
+  trendingTopics String[] @default([]) @map("trending_topics")
+  audioUrl       String?  @map("audio_url")
+  newsItemIds    String[] @map("news_item_ids")
+  metadata       Json     @default("{}")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@index([date(sort: Desc)])
+  @@map("daily_summaries")
+}
+
+model Share {
+  id        String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId    String?       @map("user_id") @db.Uuid
+  newsId    String        @map("news_id") @db.Uuid
+  platform  SharePlatform
+  createdAt DateTime      @default(now()) @map("created_at")
+
+  // Relations
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  news News  @relation(fields: [newsId], references: [id], onDelete: Cascade)
+
+  @@index([newsId])
+  @@index([userId])
+  @@index([createdAt(sort: Desc)])
+  @@map("shares")
+}
+
+model Notification {
+  id        String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId    String           @map("user_id") @db.Uuid
+  type      NotificationType
+  title     String           @db.VarChar(255)
+  message   String
+  data      Json             @default("{}")
+  isRead    Boolean          @default(false) @map("is_read")
+  readAt    DateTime?        @map("read_at")
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt(sort: Desc)])
+  @@map("notifications")
+}
+
+model UserActivity {
+  id         String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId     String?           @map("user_id") @db.Uuid
+  eventType  ActivityEventType @map("event_type")
+  entityType EntityType        @map("entity_type")
+  entityId   String            @map("entity_id") @db.Uuid
+  metadata   Json              @default("{}")
+  ipAddress  String?           @map("ip_address") @db.Inet
+  userAgent  String?           @map("user_agent")
+  createdAt  DateTime          @default(now()) @map("created_at")
+
+  // Relations
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([eventType])
+  @@index([createdAt(sort: Desc)])
+  @@index([entityType, entityId])
+  @@map("user_activities")
+}
+
+model ModeratorAction {
+  id          String              @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  moderatorId String              @map("moderator_id") @db.Uuid
+  action      ModeratorActionType
+  entityType  EntityType          @map("entity_type")
+  entityId    String              @map("entity_id") @db.Uuid
+  reason      String?
+  metadata    Json                @default("{}")
+  createdAt   DateTime            @default(now()) @map("created_at")
+
+  // Relations
+  moderator User @relation(fields: [moderatorId], references: [id], onDelete: Cascade)
+
+  @@index([moderatorId])
+  @@index([entityType, entityId])
+  @@index([createdAt(sort: Desc)])
+  @@map("moderator_actions")
+}
+
+model RefreshToken {
+  id        String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  token     String    @unique @db.VarChar(500)
+  expiresAt DateTime  @map("expires_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  revokedAt DateTime? @map("revoked_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}
+
+model ApiKey {
+  id         String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  keyHash    String    @unique @map("key_hash") @db.VarChar(255)
+  name       String    @db.VarChar(100)
+  lastUsedAt DateTime? @map("last_used_at")
+  expiresAt  DateTime? @map("expires_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  revokedAt  DateTime? @map("revoked_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([keyHash])
+  @@map("api_keys")
+}

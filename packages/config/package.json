@@ -1,0 +1,12 @@
+{
+  "name": "@aipush/config",
+  "version": "1.0.0",
+  "private": true,
+  "main": "index.js",
+  "files": [
+    "tsconfig.base.json",
+    "tsconfig.react.json",
+    "tsconfig.node.json",
+    ".eslintrc.js"
+  ]
+}
