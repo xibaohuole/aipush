@@ -1,9 +1,11 @@
-import { Bell, Moon, Sun, LogOut, User } from 'lucide-react';
+import { Bell, Moon, Sun, LogOut, User, Globe } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
 import { useUIStore } from '../../stores/uiStore';
 import { useState } from 'react';
+import { useTranslation } from '@aipush/i18n';
 
 export default function Header() {
+  const { t, i18n } = useTranslation();
   const { user, logout } = useAuthStore();
   const { theme, setTheme } = useUIStore();
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -12,15 +14,23 @@ export default function Header() {
     setTheme(theme === 'dark' ? 'light' : 'dark');
   };
 
+  const toggleLanguage = () => {
+    const currentLang = i18n.language;
+    const newLang = currentLang === 'en-US' ? 'zh-CN' : 'en-US';
+    i18n.changeLanguage(newLang);
+  };
+
   return (
     <header className="h-16 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between px-6">
       {/* Breadcrumb or Title */}
       <div>
         <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-          欢迎回来，{user?.name || '管理员'}
+          {user?.name
+            ? t('admin.header.welcome', { name: user.name })
+            : t('admin.header.welcomeDefault')}
         </h2>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          这是您的管理仪表盘
+          {t('admin.header.subtitle')}
         </p>
       </div>
 
@@ -42,6 +52,15 @@ export default function Header() {
           ) : (
             <Moon className="w-5 h-5" />
           )}
+        </button>
+
+        {/* Language Toggle */}
+        <button
+          onClick={toggleLanguage}
+          className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300"
+          title={i18n.language === 'en-US' ? 'English' : '中文'}
+        >
+          <Globe className="w-5 h-5" />
         </button>
 
         {/* User Menu */}
@@ -72,14 +91,14 @@ export default function Header() {
                 </div>
                 <button className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                   <User className="w-4 h-4" />
-                  个人资料
+                  {t('admin.header.profile')}
                 </button>
                 <button
                   onClick={logout}
                   className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700"
                 >
                   <LogOut className="w-4 h-4" />
-                  退出登录
+                  {t('admin.header.logout')}
                 </button>
               </div>
             </>

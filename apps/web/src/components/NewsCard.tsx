@@ -1,6 +1,7 @@
 import React from 'react';
 import { Bookmark, Share2, Zap, ExternalLink } from 'lucide-react';
 import { Badge } from '@aipush/ui';
+import { useTranslation } from '@aipush/i18n';
 import { NewsItem, ViewMode } from '../types';
 
 interface NewsCardProps {
@@ -19,6 +20,7 @@ const NewsCard: React.FC<NewsCardProps> = ({
   onToggleBookmark,
   onAsk,
 }) => {
+  const { t } = useTranslation();
   const impactColor =
     item.impact >= 90
       ? 'danger'
@@ -88,7 +90,7 @@ const NewsCard: React.FC<NewsCardProps> = ({
             {item.category}
           </Badge>
           <Badge variant="default" size="sm">
-            Impact: {item.impact}
+            {t('newsCard.impact')}: {item.impact}
           </Badge>
         </div>
         <span className="text-xs text-gray-400">
@@ -100,12 +102,12 @@ const NewsCard: React.FC<NewsCardProps> = ({
       <p className="text-sm text-gray-300 mb-4 line-clamp-3">{item.summary}</p>
 
       <div className="flex items-center justify-between pt-4 border-t border-white/10">
-        <span className="text-xs text-gray-400">Source: {item.source}</span>
+        <span className="text-xs text-gray-400">{t('newsCard.source')}: {item.source}</span>
         <div className="flex items-center gap-2">
           <button
             onClick={() => onAsk(item)}
             className="p-2 rounded-lg bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-400 transition"
-            title="Ask AI"
+            title={t('newsCard.actions.askAI')}
           >
             <Zap className="w-4 h-4" />
           </button>
@@ -116,11 +118,11 @@ const NewsCard: React.FC<NewsCardProps> = ({
                 ? 'bg-yellow-600/20 text-yellow-400'
                 : 'bg-white/5 text-gray-400 hover:bg-white/10'
             }`}
-            title="Bookmark"
+            title={t('newsCard.actions.bookmark')}
           >
             <Bookmark className="w-4 h-4" fill={isBookmarked ? 'currentColor' : 'none'} />
           </button>
-          <button className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 transition" title="Share">
+          <button className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 transition" title={t('newsCard.actions.share')}>
             <Share2 className="w-4 h-4" />
           </button>
           {item.url && (
@@ -129,7 +131,7 @@ const NewsCard: React.FC<NewsCardProps> = ({
               target="_blank"
               rel="noopener noreferrer"
               className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 transition"
-              title="Read More"
+              title={t('newsCard.actions.readMore')}
             >
               <ExternalLink className="w-4 h-4" />
             </a>

@@ -2,110 +2,111 @@ import {
   Users,
   Newspaper,
   MessageSquare,
-  TrendingUp,
   Activity,
   Eye,
 } from 'lucide-react';
 import { cn, formatNumber } from '../lib/utils';
-
-const stats = [
-  {
-    name: '总用户数',
-    value: '12,456',
-    change: '+12.5%',
-    changeType: 'positive',
-    icon: Users,
-  },
-  {
-    name: '新闻文章',
-    value: '1,234',
-    change: '+8.2%',
-    changeType: 'positive',
-    icon: Newspaper,
-  },
-  {
-    name: '评论数量',
-    value: '8,921',
-    change: '-2.4%',
-    changeType: 'negative',
-    icon: MessageSquare,
-  },
-  {
-    name: '日活跃用户',
-    value: '3,456',
-    change: '+18.3%',
-    changeType: 'positive',
-    icon: Activity,
-  },
-];
-
-const recentNews = [
-  {
-    id: 1,
-    title: 'OpenAI 发布 GPT-5 预览版',
-    category: 'AI',
-    status: 'published',
-    views: 15234,
-    comments: 89,
-    createdAt: '2025-01-15',
-  },
-  {
-    id: 2,
-    title: 'Google 推出新一代 AI 芯片',
-    category: '硬件',
-    status: 'pending',
-    views: 8921,
-    comments: 45,
-    createdAt: '2025-01-15',
-  },
-  {
-    id: 3,
-    title: 'Meta 发布 Llama 3.5',
-    category: 'AI',
-    status: 'published',
-    views: 12456,
-    comments: 67,
-    createdAt: '2025-01-14',
-  },
-];
-
-const recentUsers = [
-  {
-    id: 1,
-    name: '张三',
-    email: 'zhangsan@example.com',
-    role: 'user',
-    status: 'active',
-    joinedAt: '2025-01-15',
-  },
-  {
-    id: 2,
-    name: '李四',
-    email: 'lisi@example.com',
-    role: 'user',
-    status: 'active',
-    joinedAt: '2025-01-14',
-  },
-  {
-    id: 3,
-    name: '王五',
-    email: 'wangwu@example.com',
-    role: 'moderator',
-    status: 'active',
-    joinedAt: '2025-01-13',
-  },
-];
+import { useTranslation } from '@aipush/i18n';
 
 export default function DashboardPage() {
+  const { t } = useTranslation();
+
+  const stats = [
+    {
+      name: t('admin.dashboard.stats.totalUsers'),
+      value: '12,456',
+      change: '+12.5%',
+      changeType: 'positive' as const,
+      icon: Users,
+    },
+    {
+      name: t('admin.dashboard.stats.newsArticles'),
+      value: '1,234',
+      change: '+8.2%',
+      changeType: 'positive' as const,
+      icon: Newspaper,
+    },
+    {
+      name: t('admin.dashboard.stats.comments'),
+      value: '8,921',
+      change: '-2.4%',
+      changeType: 'negative' as const,
+      icon: MessageSquare,
+    },
+    {
+      name: t('admin.dashboard.stats.dailyActiveUsers'),
+      value: '3,456',
+      change: '+18.3%',
+      changeType: 'positive' as const,
+      icon: Activity,
+    },
+  ];
+
+  const recentNews = [
+    {
+      id: 1,
+      title: 'OpenAI 发布 GPT-5 预览版',
+      category: t('admin.dashboard.mockData.categories.ai'),
+      status: 'published',
+      views: 15234,
+      comments: 89,
+      createdAt: '2025-01-15',
+    },
+    {
+      id: 2,
+      title: 'Google 推出新一代 AI 芯片',
+      category: t('admin.dashboard.mockData.categories.hardware'),
+      status: 'pending',
+      views: 8921,
+      comments: 45,
+      createdAt: '2025-01-15',
+    },
+    {
+      id: 3,
+      title: 'Meta 发布 Llama 3.5',
+      category: t('admin.dashboard.mockData.categories.ai'),
+      status: 'published',
+      views: 12456,
+      comments: 67,
+      createdAt: '2025-01-14',
+    },
+  ];
+
+  const recentUsers = [
+    {
+      id: 1,
+      name: t('admin.dashboard.mockData.users.zhang'),
+      email: 'zhangsan@example.com',
+      role: 'user',
+      status: 'active',
+      joinedAt: '2025-01-15',
+    },
+    {
+      id: 2,
+      name: t('admin.dashboard.mockData.users.li'),
+      email: 'lisi@example.com',
+      role: 'user',
+      status: 'active',
+      joinedAt: '2025-01-14',
+    },
+    {
+      id: 3,
+      name: t('admin.dashboard.mockData.users.wang'),
+      email: 'wangwu@example.com',
+      role: 'moderator',
+      status: 'active',
+      joinedAt: '2025-01-13',
+    },
+  ];
   return (
     <div className="space-y-6">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-          仪表盘
+          {t('admin.sidebar.menu.dashboard')}
         </h1>
         <p className="text-gray-600 dark:text-gray-400 mt-1">
-          系统概览和关键指标
+          {t('admin.header.subtitle')}
         </p>
       </div>
 
@@ -141,7 +142,7 @@ export default function DashboardPage() {
                 {stat.change}
               </span>
               <span className="text-sm text-gray-600 dark:text-gray-400 ml-1">
-                vs 上周
+                vs last week
               </span>
             </div>
           </div>
@@ -153,7 +154,7 @@ export default function DashboardPage() {
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
           <div className="p-6 border-b border-gray-200 dark:border-gray-700">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-              最新新闻
+              {t('admin.dashboard.recentNews.title')}
             </h2>
           </div>
           <div className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -184,7 +185,7 @@ export default function DashboardPage() {
                         : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400'
                     )}
                   >
-                    {news.status === 'published' ? '已发布' : '待审核'}
+                    {news.status === 'published' ? 'Published' : 'Pending'}
                   </span>
                 </div>
               </div>
@@ -196,7 +197,7 @@ export default function DashboardPage() {
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
           <div className="p-6 border-b border-gray-200 dark:border-gray-700">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-              新注册用户
+              {t('admin.dashboard.recentUsers.title')}
             </h2>
           </div>
           <div className="divide-y divide-gray-200 dark:divide-gray-700">

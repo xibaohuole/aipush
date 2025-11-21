@@ -20,6 +20,7 @@
     "@aipush/types": "workspace:*",
     "@aipush/utils": "workspace:*",
     "@aipush/api-client": "workspace:*",
+    "@aipush/i18n": "workspace:*",
     "@tanstack/react-query": "^5.62.17",
     "zustand": "^5.0.3",
     "react-hook-form": "^7.54.2",

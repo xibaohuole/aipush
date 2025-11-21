@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Filter, MoreVertical, Ban, CheckCircle, XCircle } from 'lucide-react';
+import { Search, MoreVertical, Ban, CheckCircle, XCircle } from 'lucide-react';
 import { cn, formatDateTime } from '../../lib/utils';
 
 const mockUsers = [

@@ -1,5 +1,4 @@
 import { TrendingUp, Users, Newspaper, Eye } from 'lucide-react';
-import { formatNumber } from '../lib/utils';
 
 const stats = [
   { name: '总浏览量', value: '1,234,567', change: '+12.5%', icon: Eye },

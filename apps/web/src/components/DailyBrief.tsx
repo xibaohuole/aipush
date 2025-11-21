@@ -1,6 +1,7 @@
 import React from 'react';
 import { FileText, Sparkles } from 'lucide-react';
 import { Button, Card, CardHeader, CardContent, Spinner } from '@aipush/ui';
+import { useTranslation } from '@aipush/i18n';
 import { DailySummary } from '../types';
 
 interface DailyBriefProps {
@@ -10,11 +11,12 @@ interface DailyBriefProps {
 }
 
 const DailyBrief: React.FC<DailyBriefProps> = ({ summary, isLoading, onGenerate }) => {
+  const { t } = useTranslation();
   return (
     <div className="max-w-4xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-white mb-2">Daily Brief</h1>
-        <p className="text-gray-400">AI-generated summary of today's news</p>
+        <h1 className="text-3xl font-bold text-white mb-2">{t('nav.dailyBrief')}</h1>
+        <p className="text-gray-400">{t('dailyBrief.ready.description')}</p>
       </div>
 
       {!summary && !isLoading && (
@@ -22,14 +24,14 @@ const DailyBrief: React.FC<DailyBriefProps> = ({ summary, isLoading, onGenerate 
           <CardContent className="text-center py-12">
             <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-white mb-2">
-              No daily brief generated yet
+              {t('dailyBrief.ready.title')}
             </h3>
             <p className="text-gray-400 mb-6">
-              Generate an AI-powered summary of today's top AI news
+              {t('dailyBrief.ready.description')}
             </p>
             <Button onClick={onGenerate} variant="primary" size="lg">
               <Sparkles className="w-5 h-5" />
-              Generate Daily Brief
+              {t('dailyBrief.ready.button')}
             </Button>
           </CardContent>
         </Card>
@@ -40,9 +42,9 @@ const DailyBrief: React.FC<DailyBriefProps> = ({ summary, isLoading, onGenerate 
           <CardContent className="text-center py-12">
             <Spinner size="lg" className="mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-white mb-2">
-              Generating your daily brief...
+              {t('dailyBrief.loading.title')}
             </h3>
-            <p className="text-gray-400">This may take a few moments</p>
+            <p className="text-gray-400">{t('dailyBrief.loading.description')}</p>
           </CardContent>
         </Card>
       )}
@@ -55,7 +57,7 @@ const DailyBrief: React.FC<DailyBriefProps> = ({ summary, isLoading, onGenerate 
                 <h2 className="text-2xl font-bold text-white">{summary.date}</h2>
                 <Button onClick={onGenerate} variant="outline" size="sm">
                   <Sparkles className="w-4 h-4" />
-                  Regenerate
+                  {t('dailyBrief.ready.button')}
                 </Button>
               </div>
             </CardHeader>
@@ -67,7 +69,7 @@ const DailyBrief: React.FC<DailyBriefProps> = ({ summary, isLoading, onGenerate 
           <div className="grid md:grid-cols-2 gap-6">
             <Card variant="bordered" className="bg-white/5 border-white/10">
               <CardHeader className="border-white/10">
-                <h3 className="font-bold text-white text-lg">Key Highlights</h3>
+                <h3 className="font-bold text-white text-lg">{t('dailyBrief.summary.keyTakeaways')}</h3>
               </CardHeader>
               <CardContent>
                 <ul className="space-y-2">
@@ -83,7 +85,7 @@ const DailyBrief: React.FC<DailyBriefProps> = ({ summary, isLoading, onGenerate 
 
             <Card variant="bordered" className="bg-white/5 border-white/10">
               <CardHeader className="border-white/10">
-                <h3 className="font-bold text-white text-lg">Key Trends</h3>
+                <h3 className="font-bold text-white text-lg">{t('dailyBrief.summary.trendingSignals')}</h3>
               </CardHeader>
               <CardContent>
                 <div className="flex flex-wrap gap-2">

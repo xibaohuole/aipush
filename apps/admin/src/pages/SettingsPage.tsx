@@ -1,28 +1,30 @@
 import { Save } from 'lucide-react';
+import { useTranslation } from '@aipush/i18n';
 
 export default function SettingsPage() {
+  const { t } = useTranslation();
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-          系统设置
+          {t('admin.settings.title')}
         </h1>
         <p className="text-gray-600 dark:text-gray-400 mt-1">
-          配置系统参数和偏好设置
+          {t('admin.settings.subtitle')}
         </p>
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
         <div className="p-6 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-            基本设置
+            {t('admin.settings.basic.title')}
           </h2>
         </div>
 
         <div className="p-6 space-y-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              网站名称
+              {t('admin.settings.basic.siteName')}
             </label>
             <input
               type="text"
@@ -33,18 +35,18 @@ export default function SettingsPage() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              网站描述
+              {t('admin.settings.basic.siteDescription')}
             </label>
             <textarea
               rows={3}
-              defaultValue="您的每日AI新闻聚合平台"
+              defaultValue="Your daily AI news aggregation platform"
               className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              每页显示数量
+              {t('admin.settings.basic.itemsPerPage')}
             </label>
             <input
               type="number"
@@ -64,7 +66,7 @@ export default function SettingsPage() {
               htmlFor="comments-enabled"
               className="ml-2 text-sm text-gray-700 dark:text-gray-300"
             >
-              启用评论功能
+              {t('admin.settings.basic.enableComments')}
             </label>
           </div>
 
@@ -78,14 +80,14 @@ export default function SettingsPage() {
               htmlFor="auto-approve"
               className="ml-2 text-sm text-gray-700 dark:text-gray-300"
             >
-              自动批准评论
+              {t('admin.settings.basic.autoApproveComments')}
             </label>
           </div>
 
           <div className="pt-4">
             <button className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center gap-2">
               <Save className="w-4 h-4" />
-              保存设置
+              {t('admin.settings.buttons.save')}
             </button>
           </div>
         </div>
@@ -94,14 +96,14 @@ export default function SettingsPage() {
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
         <div className="p-6 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-            API 配置
+            {t('admin.settings.api.title')}
           </h2>
         </div>
 
         <div className="p-6 space-y-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              GLM API Key (智谱AI)
+              {t('admin.settings.api.glmKey')}
             </label>
             <input
               type="password"
@@ -112,7 +114,7 @@ export default function SettingsPage() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              API Base URL
+              {t('admin.settings.api.baseUrl')}
             </label>
             <input
               type="url"
@@ -124,7 +126,7 @@ export default function SettingsPage() {
           <div className="pt-4">
             <button className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center gap-2">
               <Save className="w-4 h-4" />
-              保存配置
+              {t('admin.settings.buttons.saveApi')}
             </button>
           </div>
         </div>

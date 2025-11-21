@@ -2,8 +2,10 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
 import { LogIn } from 'lucide-react';
+import { useTranslation } from '@aipush/i18n';
 
 export default function LoginPage() {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -53,10 +55,10 @@ export default function LoginPage() {
               <LogIn className="w-8 h-8 text-white" />
             </div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              AI Pulse Admin
+              {t('admin.login.title')}
             </h1>
             <p className="text-gray-600 dark:text-gray-400 mt-2">
-              登录到管理后台
+              {t('admin.login.subtitle')}
             </p>
           </div>
 
@@ -73,7 +75,7 @@ export default function LoginPage() {
                 htmlFor="email"
                 className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
               >
-                邮箱地址
+                {t('admin.login.email')}
               </label>
               <input
                 id="email"
@@ -81,7 +83,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                placeholder="admin@example.com"
+                placeholder={t('admin.login.placeholders.email')}
                 required
               />
             </div>
@@ -91,7 +93,7 @@ export default function LoginPage() {
                 htmlFor="password"
                 className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
               >
-                密码
+                {t('admin.login.password')}
               </label>
               <input
                 id="password"
@@ -109,20 +111,20 @@ export default function LoginPage() {
               disabled={loading}
               className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium rounded-lg transition-colors"
             >
-              {loading ? '登录中...' : '登录'}
+              {loading ? t('admin.login.submitting') : t('admin.login.submit')}
             </button>
           </form>
 
           {/* Demo Credentials */}
           <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
             <p className="text-xs text-blue-900 dark:text-blue-300 font-medium mb-1">
-              演示账号：
+              {t('admin.login.demo.title')}
             </p>
             <p className="text-xs text-blue-700 dark:text-blue-400">
-              邮箱: admin@example.com
+              {t('admin.login.demo.email')}
             </p>
             <p className="text-xs text-blue-700 dark:text-blue-400">
-              密码: 任意密码
+              {t('admin.login.demo.password')}
             </p>
           </div>
         </div>

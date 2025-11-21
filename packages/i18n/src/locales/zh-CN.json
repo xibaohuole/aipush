@@ -1,0 +1,271 @@
+{
+  "header": {
+    "title": "AI 脉搏",
+    "subtitle": "每天5分钟，掌握全球核心动态",
+    "subtitleBookmark": "我的知识库",
+    "searchPlaceholder": "搜索或向 AI 提问...",
+    "lastUpdated": "上次同步",
+    "nextUpdate": "下期预告",
+    "generateReport": "周报 PDF",
+    "addCustom": "投稿链接"
+  },
+  "nav": {
+    "dashboard": "今日动态",
+    "trending": "热度排行",
+    "dailyBrief": "音频简报",
+    "settings": "设置"
+  },
+  "filters": {
+    "bookmarks": "已藏",
+    "categories": "话题",
+    "regions": "地区",
+    "syncing": "同步中...",
+    "refresh": "刷新"
+  },
+  "actions": {
+    "saveNotion": "存入 Notion",
+    "saveReadwise": "Readwise",
+    "ask": "追问 AI",
+    "listen": "收听 (11分)",
+    "why": "一句话影响"
+  },
+  "growth": {
+    "invite": "邀请好友",
+    "inviteDesc": "获终身会员权益",
+    "sponsors": "赞助榜单",
+    "pdf": "下载合集"
+  },
+  "empty": {
+    "noNews": "今日内容已读完，敬请期待下期。",
+    "noMatch": "无匹配内容。"
+  },
+  "sidebar": {
+    "upgrade": {
+      "title": "升级至专业版",
+      "description": "获取实时提醒和定制分析报告",
+      "button": "即将推出"
+    }
+  },
+  "addNewsModal": {
+    "title": "添加自定义书签",
+    "fields": {
+      "headline": "标题",
+      "url": "链接",
+      "category": "分类",
+      "region": "地区",
+      "notes": "备注"
+    },
+    "placeholders": {
+      "headline": "例如：有趣的AI文章",
+      "url": "https://...",
+      "notes": "个人总结或为什么重要"
+    },
+    "buttons": {
+      "cancel": "取消",
+      "add": "添加书签"
+    }
+  },
+  "trending": {
+    "title": "全球 AI 热度榜：Top 100",
+    "description": "当前最关键的行业动态，按 AI 影响力评分排序。",
+    "filters": {
+      "all": "全部",
+      "finance": "金融",
+      "lifestyle": "生活",
+      "tech": "科技",
+      "ai": "AI",
+      "china": "中国",
+      "hardware": "硬件",
+      "usa": "美国",
+      "policy": "政策",
+      "europe": "欧洲",
+      "japan": "日本"
+    }
+  },
+  "dailyBrief": {
+    "loading": {
+      "title": "AI 智能处理中...",
+      "description": "正在综合全球信息，识别核心脉络，编写您的简报。"
+    },
+    "ready": {
+      "title": "准备好生成简报了吗？",
+      "description": "使用 GLM AI 生成您的个性化每日摘要。",
+      "button": "生成 AI 简报"
+    },
+    "summary": {
+      "digest": "智能摘要",
+      "keyTakeaways": "核心要点",
+      "trendingSignals": "趋势信号",
+      "generatedBy": "由 GEMINI 2.5 生成",
+      "shareButton": "分享报告"
+    }
+  },
+  "settings": {
+    "title": "偏好设置",
+    "sections": {
+      "appearance": "外观与地区",
+      "notifications": "通知设置",
+      "frequency": "摘要频率",
+      "interests": "兴趣偏好"
+    },
+    "language": {
+      "label": "语言",
+      "description": "设置界面和AI摘要的语言",
+      "options": {
+        "english": "English (英语)",
+        "chinese": "中文（简体）",
+        "spanish": "Español (西班牙语)",
+        "japanese": "日本語（日语）",
+        "german": "Deutsch (德语)",
+        "french": "Français (法语)"
+      }
+    },
+    "font": {
+      "label": "字体样式",
+      "description": "选择您偏好的阅读字体",
+      "options": {
+        "sans": "现代无衬线（默认）",
+        "serif": "优雅衬线",
+        "mono": "开发者等宽"
+      }
+    },
+    "emailDigest": {
+      "label": "邮件摘要",
+      "description": "在收件箱中接收每日简报"
+    },
+    "appPush": {
+      "label": "应用推送",
+      "description": "高影响力新闻（评分8+）的实时提醒"
+    },
+    "frequency": {
+      "realtime": "实时",
+      "daily": "每日",
+      "weekly": "每周"
+    },
+    "buttons": {
+      "save": "保存更改",
+      "saved": "已保存"
+    }
+  },
+  "newsCard": {
+    "addCustom": "添加自定义新闻",
+    "thinking": "思考中...",
+    "askPlaceholder": "例如：这对英伟达股价有什么影响？",
+    "impact": "影响力",
+    "source": "来源",
+    "actions": {
+      "askAI": "询问 AI",
+      "bookmark": "收藏",
+      "share": "分享",
+      "readMore": "阅读更多"
+    },
+    "category": {
+      "finance": "金融",
+      "lifestyle": "生活",
+      "tech": "科技",
+      "ai": "AI",
+      "hardware": "硬件",
+      "policy": "政策",
+      "general": "综合"
+    },
+    "region": {
+      "usa": "美国",
+      "china": "中国",
+      "europe": "欧洲",
+      "japan": "日本",
+      "global": "全球"
+    }
+  },
+  "admin": {
+    "appName": "AI 脉搏管理后台",
+    "login": {
+      "title": "AI 脉搏管理后台",
+      "subtitle": "登录到管理后台",
+      "email": "邮箱地址",
+      "password": "密码",
+      "submit": "登录",
+      "submitting": "登录中...",
+      "demo": {
+        "title": "演示账号：",
+        "email": "邮箱：admin@example.com",
+        "password": "密码：任意密码"
+      },
+      "placeholders": {
+        "email": "admin@example.com"
+      }
+    },
+    "header": {
+      "welcome": "欢迎回来，{{name}}",
+      "welcomeDefault": "欢迎回来，管理员",
+      "subtitle": "这是您的管理仪表盘",
+      "profile": "个人资料",
+      "logout": "退出登录"
+    },
+    "sidebar": {
+      "menu": {
+        "dashboard": "仪表盘",
+        "users": "用户管理",
+        "news": "新闻管理",
+        "comments": "评论审核",
+        "analytics": "数据分析",
+        "settings": "系统设置"
+      }
+    },
+    "dashboard": {
+      "stats": {
+        "totalUsers": "总用户数",
+        "newsArticles": "新闻文章",
+        "comments": "评论数量",
+        "dailyActiveUsers": "日活跃用户"
+      },
+      "recentNews": {
+        "title": "最近新闻文章",
+        "columns": {
+          "title": "标题",
+          "category": "分类",
+          "date": "日期"
+        }
+      },
+      "recentUsers": {
+        "title": "新用户",
+        "columns": {
+          "name": "姓名",
+          "email": "邮箱",
+          "registered": "注册时间"
+        }
+      },
+      "mockData": {
+        "users": {
+          "zhang": "张三",
+          "li": "李四",
+          "wang": "王五"
+        },
+        "categories": {
+          "ai": "AI",
+          "hardware": "硬件"
+        }
+      }
+    },
+    "settings": {
+      "title": "系统设置",
+      "subtitle": "配置系统参数和偏好设置",
+      "basic": {
+        "title": "基本设置",
+        "siteName": "网站名称",
+        "siteDescription": "网站描述",
+        "itemsPerPage": "每页显示数量",
+        "enableComments": "启用评论功能",
+        "autoApproveComments": "自动批准评论"
+      },
+      "api": {
+        "title": "API 配置",
+        "glmKey": "GLM API Key（智谱AI）",
+        "baseUrl": "API Base URL"
+      },
+      "buttons": {
+        "save": "保存设置",
+        "saveApi": "保存配置"
+      }
+    }
+  }
+}

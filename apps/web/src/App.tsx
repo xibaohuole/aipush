@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Modal, Button } from '@aipush/ui';
+import { useTranslation } from '@aipush/i18n';
 import Sidebar from './components/Sidebar';
 import NewsCard from './components/NewsCard';
 import DailyBrief from './components/DailyBrief';
@@ -35,10 +36,10 @@ import {
   Zap,
   FileText,
 } from 'lucide-react';
-import { UI_TRANSLATIONS } from './constants';
 import './index.css';
 
 const App: React.FC = () => {
+  const { t, i18n } = useTranslation();
   const [currentView, setCurrentView] = useState<ViewState>(ViewState.DASHBOARD);
   const [newsItems, setNewsItems] = useState<NewsItem[]>([]);
   const [dailySummary, setDailySummary] = useState<DailySummary | null>(null);
@@ -70,7 +71,6 @@ const App: React.FC = () => {
   const [bookmarkedItems, setBookmarkedItems] = useState<Set<string>>(() => getBookmarks());
   const [timeLeft, setTimeLeft] = useState('');
 
-  const t = UI_TRANSLATIONS[targetLanguage] || UI_TRANSLATIONS['English'];
   const profileRef = useRef<HTMLDivElement>(null);
 
   // Countdown Timer Logic
@@ -125,10 +125,21 @@ const App: React.FC = () => {
     saveBookmarks(bookmarkedItems);
   }, [bookmarkedItems]);
 
-  // Save language preference
+  // Save language preference and sync with i18n
   useEffect(() => {
     saveLanguage(targetLanguage);
-  }, [targetLanguage]);
+    // Map old language names to new locale codes
+    const localeMap: Record<string, string> = {
+      'English': 'en-US',
+      'Chinese': 'zh-CN',
+      'en-US': 'en-US',
+      'zh-CN': 'zh-CN',
+    };
+    const locale = localeMap[targetLanguage] || 'en-US';
+    if (i18n.language !== locale) {
+      i18n.changeLanguage(locale);
+    }
+  }, [targetLanguage, i18n]);
 
   // Save view mode preference
   useEffect(() => {
@@ -213,7 +224,7 @@ const App: React.FC = () => {
             <div className="bg-slate-900/50 rounded-lg p-4 min-h-[120px] max-h-[240px] overflow-y-auto text-sm text-gray-200">
               {isAsking ? (
                 <div className="flex items-center text-cyan-400">
-                  <RefreshCw className="w-4 h-4 animate-spin mr-2" /> Thinking...
+                  <RefreshCw className="w-4 h-4 animate-spin mr-2" /> {t('newsCard.thinking')}
                 </div>
               ) : (
                 <p>{askAnswer || 'Ask me anything about this article. I can explain technical terms, implications, or background.'}</p>
@@ -225,7 +236,7 @@ const App: React.FC = () => {
                 value={askQuestion}
                 onChange={(e) => setAskQuestion(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleAskAI()}
-                placeholder="e.g. How does this affect NVIDIA's stock?"
+                placeholder={t('newsCard.askPlaceholder')}
                 className="flex-1 bg-slate-800/50 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:ring-2 focus:ring-cyan-500 outline-none"
               />
               <Button onClick={handleAskAI} disabled={isAsking} variant="primary" size="md">
@@ -264,7 +275,7 @@ const App: React.FC = () => {
             className="w-full py-2.5 bg-gradient-to-r from-cyan-600 to-blue-600 rounded-lg text-sm font-bold text-white hover:brightness-110 transition shadow-lg flex items-center justify-center gap-2"
           >
             <Plus className="w-4 h-4" />
-            Add Custom News
+            {t('newsCard.addCustom')}
           </button>
         </div>
       </div>
@@ -280,7 +291,7 @@ const App: React.FC = () => {
             >
               <Menu className="w-6 h-6" />
             </button>
-            <span className="ml-2 font-bold text-lg text-white tracking-tight">AI Pulse</span>
+            <span className="ml-2 font-bold text-lg text-white tracking-tight">{t('header.title')}</span>
           </div>
 
           <div className="hidden md:flex items-center space-x-6">

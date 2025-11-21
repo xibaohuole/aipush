@@ -1,6 +1,7 @@
 import React from 'react';
 import { TrendingUp, Flame } from 'lucide-react';
 import { Badge, Card, CardHeader, CardContent } from '@aipush/ui';
+import { useTranslation } from '@aipush/i18n';
 import { NewsItem } from '../types';
 
 interface TrendingListProps {
@@ -8,6 +9,7 @@ interface TrendingListProps {
 }
 
 const TrendingList: React.FC<TrendingListProps> = ({ items }) => {
+  const { t } = useTranslation();
   // Sort by impact score
   const trendingItems = [...items].sort((a, b) => b.impact - a.impact).slice(0, 10);
 
@@ -16,9 +18,9 @@ const TrendingList: React.FC<TrendingListProps> = ({ items }) => {
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-2">
           <Flame className="w-8 h-8 text-orange-500" />
-          Trending News
+          {t('trending.title')}
         </h1>
-        <p className="text-gray-400">Top AI news by impact score</p>
+        <p className="text-gray-400">{t('trending.description')}</p>
       </div>
 
       <div className="space-y-4">

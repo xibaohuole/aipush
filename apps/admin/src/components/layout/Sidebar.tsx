@@ -11,18 +11,20 @@ import {
 } from 'lucide-react';
 import { useUIStore } from '../../stores/uiStore';
 import { cn } from '../../lib/utils';
-
-const navigation = [
-  { name: '仪表盘', href: '/', icon: LayoutDashboard },
-  { name: '用户管理', href: '/users', icon: Users },
-  { name: '新闻管理', href: '/news', icon: Newspaper },
-  { name: '评论审核', href: '/comments', icon: MessageSquare },
-  { name: '数据分析', href: '/analytics', icon: BarChart3 },
-  { name: '系统设置', href: '/settings', icon: Settings },
-];
+import { useTranslation } from '@aipush/i18n';
 
 export default function Sidebar() {
+  const { t } = useTranslation();
   const { sidebarCollapsed, toggleSidebar } = useUIStore();
+
+  const navigation = [
+    { name: t('admin.sidebar.menu.dashboard'), href: '/', icon: LayoutDashboard },
+    { name: t('admin.sidebar.menu.users'), href: '/users', icon: Users },
+    { name: t('admin.sidebar.menu.news'), href: '/news', icon: Newspaper },
+    { name: t('admin.sidebar.menu.comments'), href: '/comments', icon: MessageSquare },
+    { name: t('admin.sidebar.menu.analytics'), href: '/analytics', icon: BarChart3 },
+    { name: t('admin.sidebar.menu.settings'), href: '/settings', icon: Settings },
+  ];
 
   return (
     <aside
@@ -35,7 +37,7 @@ export default function Sidebar() {
       <div className="h-16 flex items-center justify-between px-4 border-b border-gray-200 dark:border-gray-700">
         {!sidebarCollapsed && (
           <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-            AI Pulse Admin
+            {t('admin.appName')}
           </h1>
         )}
         <button

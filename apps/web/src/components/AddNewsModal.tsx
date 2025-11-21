@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Modal, Input, Button } from '@aipush/ui';
+import { useTranslation } from '@aipush/i18n';
 import { NewsItem, NewsCategory, Region } from '../types';
 
 interface AddNewsModalProps {
@@ -8,6 +9,7 @@ interface AddNewsModalProps {
 }
 
 const AddNewsModal: React.FC<AddNewsModalProps> = ({ onClose, onAdd }) => {
+  const { t } = useTranslation();
   const [title, setTitle] = useState('');
   const [summary, setSummary] = useState('');
   const [category, setCategory] = useState<NewsCategory>(NewsCategory.AI);
@@ -33,24 +35,24 @@ const AddNewsModal: React.FC<AddNewsModalProps> = ({ onClose, onAdd }) => {
   };
 
   return (
-    <Modal isOpen={true} onClose={onClose} title="Add Custom News" size="lg">
+    <Modal isOpen={true} onClose={onClose} title={t('addNewsModal.title')} size="lg">
       <form onSubmit={handleSubmit} className="space-y-4">
         <Input
-          label="Title"
+          label={t('addNewsModal.fields.headline')}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="Enter news title"
+          placeholder={t('addNewsModal.placeholders.headline')}
           required
         />
 
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Summary
+            {t('addNewsModal.fields.notes')}
           </label>
           <textarea
             value={summary}
             onChange={(e) => setSummary(e.target.value)}
-            placeholder="Enter news summary"
+            placeholder={t('addNewsModal.placeholders.notes')}
             rows={4}
             className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             required
@@ -60,7 +62,7 @@ const AddNewsModal: React.FC<AddNewsModalProps> = ({ onClose, onAdd }) => {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Category
+              {t('addNewsModal.fields.category')}
             </label>
             <select
               value={category}
@@ -77,7 +79,7 @@ const AddNewsModal: React.FC<AddNewsModalProps> = ({ onClose, onAdd }) => {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Region
+              {t('addNewsModal.fields.region')}
             </label>
             <select
               value={region}
@@ -94,19 +96,19 @@ const AddNewsModal: React.FC<AddNewsModalProps> = ({ onClose, onAdd }) => {
         </div>
 
         <Input
-          label="Source"
+          label={t('addNewsModal.fields.url')}
           value={source}
           onChange={(e) => setSource(e.target.value)}
-          placeholder="Enter source name"
+          placeholder={t('addNewsModal.placeholders.url')}
           required
         />
 
         <div className="flex justify-end gap-3 pt-4">
           <Button type="button" onClick={onClose} variant="outline">
-            Cancel
+            {t('addNewsModal.buttons.cancel')}
           </Button>
           <Button type="submit" variant="primary">
-            Add News
+            {t('addNewsModal.buttons.add')}
           </Button>
         </div>
       </form>

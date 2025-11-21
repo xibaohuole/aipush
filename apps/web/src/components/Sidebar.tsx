@@ -1,7 +1,7 @@
 import React from 'react';
 import { LayoutDashboard, TrendingUp, FileText, Settings as SettingsIcon } from 'lucide-react';
+import { useTranslation } from '@aipush/i18n';
 import { ViewState } from '../types';
-import { UI_TRANSLATIONS } from '../constants';
 
 interface SidebarProps {
   currentView: ViewState;
@@ -9,14 +9,14 @@ interface SidebarProps {
   language: string;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ currentView, setView, language }) => {
-  const t = UI_TRANSLATIONS[language] || UI_TRANSLATIONS['English'];
+const Sidebar: React.FC<SidebarProps> = ({ currentView, setView }) => {
+  const { t } = useTranslation();
 
   const navItems = [
-    { view: ViewState.DASHBOARD, label: t.nav.dashboard, icon: LayoutDashboard },
-    { view: ViewState.TRENDING, label: t.nav.trending, icon: TrendingUp },
-    { view: ViewState.DAILY_BRIEF, label: t.nav.brief, icon: FileText },
-    { view: ViewState.SETTINGS, label: t.nav.settings, icon: SettingsIcon },
+    { view: ViewState.DASHBOARD, label: t('nav.dashboard'), icon: LayoutDashboard },
+    { view: ViewState.TRENDING, label: t('nav.trending'), icon: TrendingUp },
+    { view: ViewState.DAILY_BRIEF, label: t('nav.dailyBrief'), icon: FileText },
+    { view: ViewState.SETTINGS, label: t('nav.settings'), icon: SettingsIcon },
   ];
 
   return (
@@ -24,9 +24,9 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setView, language }) => 
       {/* Logo */}
       <div className="p-6 border-b border-white/10">
         <h1 className="text-2xl font-bold text-white tracking-tight">
-          AI Pulse
+          {t('header.title')}
         </h1>
-        <p className="text-sm text-gray-400 mt-1">Daily News</p>
+        <p className="text-sm text-gray-400 mt-1">{t('header.subtitle')}</p>
       </div>
 
       {/* Navigation */}
