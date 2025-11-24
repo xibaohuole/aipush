@@ -17,6 +17,7 @@ import { CommentsModule } from './modules/comments/comments.module';
 import { DailySummariesModule } from './modules/daily-summaries/daily-summaries.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { SettingsModule } from './modules/settings/settings.module';
 
 // Configuration
 import configuration from './config/configuration';
@@ -55,6 +56,7 @@ import configuration from './config/configuration';
     DailySummariesModule,
     NotificationsModule,
     AnalyticsModule,
+    SettingsModule,
   ],
 })
 export class AppModule {}

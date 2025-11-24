@@ -213,7 +213,7 @@ const App: React.FC = () => {
           title={
             <div className="flex items-center gap-2">
               <Zap className="w-5 h-5 text-cyan-400" />
-              {t.actions.ask}
+              {t('actions.ask')}
             </div>
           }
         >
@@ -299,7 +299,7 @@ const App: React.FC = () => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-cyan-400 transition" />
               <input
                 type="text"
-                placeholder={t.header.searchPlaceholder}
+                placeholder={t('header.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="bg-slate-900/50 border border-slate-700 rounded-full pl-10 pr-4 py-2 text-sm text-slate-200 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 w-80 transition-all placeholder-slate-500"
@@ -317,7 +317,7 @@ const App: React.FC = () => {
             {/* Countdown Timer */}
             <div className="flex flex-col text-right">
               <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">
-                {t.header.nextUpdate}
+                {t('header.nextUpdate')}
               </span>
               <span className="text-sm font-mono font-bold text-emerald-400">{timeLeft}</span>
             </div>
@@ -326,7 +326,7 @@ const App: React.FC = () => {
           <div className="flex items-center space-x-3">
             <button className="hidden lg:flex items-center px-3 py-2 rounded-lg text-sm font-semibold text-slate-300 hover:text-white hover:bg-white/5 border border-transparent hover:border-white/10 transition">
               <FileText className="w-4 h-4 mr-2" />
-              {t.header.generateReport}
+              {t('header.generateReport')}
             </button>
 
             {/* Profile */}
@@ -359,7 +359,7 @@ const App: React.FC = () => {
                       }}
                       className="w-full text-left px-4 py-2 text-sm text-slate-300 hover:bg-white/10 transition"
                     >
-                      {t.nav.settings}
+                      {t('nav.settings')}
                     </button>
                   </div>
                 </>
@@ -375,8 +375,8 @@ const App: React.FC = () => {
               <div className="sticky top-0 z-20 glass-panel border-b border-white/5 px-6 py-4 shadow-lg">
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                   <div>
-                    <h1 className="text-2xl font-bold text-white tracking-tight">{t.header.title}</h1>
-                    <p className="text-sm text-slate-400">{t.header.subtitle}</p>
+                    <h1 className="text-2xl font-bold text-white tracking-tight">{t('header.title')}</h1>
+                    <p className="text-sm text-slate-400">{t('header.subtitle')}</p>
                   </div>
 
                   <div className="flex items-center space-x-2 overflow-x-auto no-scrollbar">
@@ -401,7 +401,7 @@ const App: React.FC = () => {
                       value={selectedCategory}
                       onChange={(e) => setSelectedCategory(e.target.value as any)}
                     >
-                      <option value="All">{t.filters.categories}</option>
+                      <option value="All">{t('filters.categories')}</option>
                       {Object.values(NewsCategory).map((c) => (
                         <option key={c} value={c}>
                           {c}
@@ -417,7 +417,7 @@ const App: React.FC = () => {
                       className="shadow-cyan-500/30"
                     >
                       <RefreshCw className={`w-4 h-4 ${isProcessing ? 'animate-spin' : ''}`} />
-                      {isProcessing ? t.filters.syncing : t.filters.refresh}
+                      {isProcessing ? t('filters.syncing') : t('filters.refresh')}
                     </Button>
                   </div>
                 </div>
@@ -429,7 +429,7 @@ const App: React.FC = () => {
 
                 {newsItems.length === 0 && !isProcessing ? (
                   <div className="text-center py-20">
-                    <p className="text-slate-500">{t.empty.noNews}</p>
+                    <p className="text-slate-500">{t('empty.noNews')}</p>
                   </div>
                 ) : (
                   <div
@@ -437,7 +437,7 @@ const App: React.FC = () => {
                   >
                     {filteredNews.length === 0 ? (
                       <div className="col-span-full text-center py-20 text-slate-500 italic">
-                        {t.empty.noMatch}
+                        {t('empty.noMatch')}
                       </div>
                     ) : (
                       filteredNews.map((item) => (

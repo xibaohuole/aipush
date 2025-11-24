@@ -13,6 +13,8 @@ import type {
   Comment,
   DailySummary,
   Notification,
+  Settings,
+  UpdateSettingsData,
 } from '@aipush/types';
 import { AppError } from '@aipush/utils';
 
@@ -251,6 +253,20 @@ export class ApiClient {
 
   async trackNewsView(newsId: string): Promise<void> {
     return this.trackEvent('news_view', { newsId });
+  }
+
+  // ==================== Settings APIs ====================
+
+  async getSettings(): Promise<ApiResponse<Settings>> {
+    return this.client.get('/settings');
+  }
+
+  async updateSettings(data: UpdateSettingsData): Promise<ApiResponse<Settings>> {
+    return this.client.put('/settings', data);
+  }
+
+  async resetSettings(): Promise<ApiResponse<Settings>> {
+    return this.client.post('/settings/reset');
   }
 }
 

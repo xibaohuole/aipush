@@ -277,6 +277,29 @@ export interface AdminStats {
   topRegions: Array<{ region: Region; count: number }>;
 }
 
+export interface Settings {
+  id: string;
+  siteName: string;
+  siteDescription: string;
+  itemsPerPage: number;
+  commentsEnabled: boolean;
+  autoApproveComments: boolean;
+  glmApiKey?: string | null;
+  apiBaseUrl: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UpdateSettingsData {
+  siteName?: string;
+  siteDescription?: string;
+  itemsPerPage?: number;
+  commentsEnabled?: boolean;
+  autoApproveComments?: boolean;
+  glmApiKey?: string;
+  apiBaseUrl?: string;
+}
+
 // ==================== WebSocket ====================
 
 export interface WebSocketMessage<T = unknown> {

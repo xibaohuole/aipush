@@ -407,3 +407,18 @@ model ApiKey {
   @@index([keyHash])
   @@map("api_keys")
 }
+
+model Settings {
+  id                   String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  siteName             String   @default("AI Pulse Daily") @map("site_name") @db.VarChar(100)
+  siteDescription      String   @default("Your daily AI news aggregation platform") @map("site_description") @db.VarChar(500)
+  itemsPerPage         Int      @default(20) @map("items_per_page")
+  commentsEnabled      Boolean  @default(true) @map("comments_enabled")
+  autoApproveComments  Boolean  @default(false) @map("auto_approve_comments")
+  glmApiKey            String?  @map("glm_api_key")
+  apiBaseUrl           String   @default("http://localhost:4000") @map("api_base_url")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  @@map("settings")
+}

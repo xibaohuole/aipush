@@ -1,6 +1,6 @@
 import React from 'react';
 import { TrendingUp, Flame } from 'lucide-react';
-import { Badge, Card, CardHeader, CardContent } from '@aipush/ui';
+import { Badge, Card, CardContent } from '@aipush/ui';
 import { useTranslation } from '@aipush/i18n';
 import { NewsItem } from '../types';
 
