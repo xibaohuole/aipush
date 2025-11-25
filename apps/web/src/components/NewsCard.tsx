@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bookmark, Share2, Zap, ExternalLink, Languages, RefreshCw, Search } from 'lucide-react';
+import { Bookmark, Share2, Zap, Languages, RefreshCw, Search } from 'lucide-react';
 import { Badge } from '@aipush/ui';
 import { useTranslation } from '@aipush/i18n';
 import { NewsItem, ViewMode } from '../types';

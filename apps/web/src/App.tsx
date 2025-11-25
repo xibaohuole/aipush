@@ -50,10 +50,10 @@ const App: React.FC = () => {
 
   // Filters & View Settings
   const [selectedCategory, setSelectedCategory] = useState<NewsCategory | 'All'>('All');
-  const [selectedRegion, setSelectedRegion] = useState<Region | 'All'>('All');
+  const [selectedRegion, _setSelectedRegion] = useState<Region | 'All'>('All');
   const [targetLanguage, setTargetLanguage] = useState<string>(() => getLanguage());
   const [viewMode, setViewMode] = useState<ViewMode>(() => getViewMode());
-  const [showBookmarksOnly, setShowBookmarksOnly] = useState(false);
+  const [showBookmarksOnly, _setShowBookmarksOnly] = useState(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
 
   // Modals & Menus

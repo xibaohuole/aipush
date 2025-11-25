@@ -487,7 +487,7 @@ function getFallbackNews(): NewsItem[] {
     {
       title: 'Microsoft Copilot Gets Major Update with Enhanced Integration',
       summary: 'Microsoft rolls out significant improvements to Copilot across Office suite with better context understanding.',
-      category: NewsCategory.APPLICATION,
+      category: NewsCategory.SOFTWARE,
       source: 'Microsoft 365 Blog',
       daysAgo: 1
     }
