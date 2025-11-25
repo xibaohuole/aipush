@@ -1,0 +1,18 @@
+{
+  "watch": ["src"],
+  "ext": "ts",
+  "ignore": ["src/**/*.spec.ts", "node_modules"],
+  "exec": "ts-node src/main.ts",
+  "delay": 1000,
+  "restartable": "rs",
+  "env": {
+    "NODE_ENV": "development"
+  },
+  "events": {
+    "restart": "echo '\n🔄 Restarting due to file changes...\n'",
+    "crash": "echo '\n💥 App crashed - waiting for changes...\n'"
+  },
+  "signal": "SIGTERM",
+  "stdout": true,
+  "colours": true
+}

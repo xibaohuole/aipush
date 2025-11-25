@@ -122,3 +122,12 @@ export async function translateToChinese(text: string): Promise<string> {
   // For now, return original text
   return text;
 }
+
+/**
+ * Ask AI a question about a news item - now calls backend
+ */
+export async function askAI(question: string, context: string): Promise<string> {
+  // TODO: Implement backend endpoint for AI Q&A
+  // For now, return a placeholder response
+  return 'AI Q&A功能即将上线。AI Q&A feature coming soon.';
+}
