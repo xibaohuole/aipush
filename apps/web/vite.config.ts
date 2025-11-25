@@ -14,10 +14,9 @@ export default defineConfig(({ mode }) => {
     },
     plugins: [react()],
     define: {
-      'process.env.API_KEY': JSON.stringify(env.VITE_GLM_API_KEY || env.GLM_API_KEY),
-      'process.env.GLM_API_KEY': JSON.stringify(env.VITE_GLM_API_KEY || env.GLM_API_KEY),
-      'import.meta.env.VITE_GLM_API_KEY': JSON.stringify(env.VITE_GLM_API_KEY),
-      'import.meta.env.VITE_API_URL': JSON.stringify(env.VITE_API_URL || 'http://localhost:4000')
+      // ⚠️ SECURITY: Never expose API keys in frontend code
+      // Only expose non-sensitive configuration like the backend API URL
+      'import.meta.env.VITE_API_URL': JSON.stringify(env.VITE_API_URL || 'http://localhost:4000/api/v1')
     },
     resolve: {
       alias: {

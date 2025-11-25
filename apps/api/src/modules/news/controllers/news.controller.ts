@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { PrismaService } from '../../../common/prisma/prisma.service';
+import { AIAnalyzerService } from '../services/ai-analyzer.service';
 
 /**
  * 新闻 API 控制器
@@ -17,7 +18,10 @@ import { PrismaService } from '../../../common/prisma/prisma.service';
 @ApiTags('news')
 @Controller('news')
 export class NewsController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly aiAnalyzer: AIAnalyzerService,
+  ) {}
 
   /**
    * 获取新闻列表（支持分页和筛选）
@@ -235,5 +239,31 @@ export class NewsController {
       success: true,
       message: 'Bookmark removed',
     };
+  }
+
+  /**
+   * 使用AI生成实时新闻
+   */
+  @Get('ai/generate')
+  @ApiOperation({ summary: '使用AI生成实时新闻' })
+  @ApiQuery({ name: 'count', required: false, type: Number })
+  async generateAINews(
+    @Query('count', new DefaultValuePipe(8), ParseIntPipe) count: number,
+  ) {
+    try {
+      const newsItems = await this.aiAnalyzer.generateRealtimeNews(count);
+      return {
+        success: true,
+        data: newsItems,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: {
+          code: 'AI_GENERATION_FAILED',
+          message: 'Failed to generate AI news',
+        },
+      };
+    }
   }
 }

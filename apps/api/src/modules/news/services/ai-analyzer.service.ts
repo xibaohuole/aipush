@@ -225,4 +225,65 @@ CRITICAL: Your response must start with { and end with }. Do NOT wrap in markdow
       title.toLowerCase().includes(term.toLowerCase())
     ).slice(0, 3);
   }
+
+  /**
+   * 生成AI新闻摘要（用于前端调用）
+   */
+  async generateRealtimeNews(count: number = 8): Promise<any[]> {
+    if (!this.glmApiKey) {
+      this.logger.warn('GLM API key not configured, cannot generate news');
+      return [];
+    }
+
+    try {
+      const today = new Date().toLocaleDateString('zh-CN', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+
+      const prompt = `你是一个JSON-only API。请基于你的知识库，生成${count}条最近一周内的AI行业新闻。
+
+## 核心要求
+- 今天是 ${today}
+- 只提供**真实、可验证**的新闻，不要编造或推测
+- 如果不确定某件事，宁可不提及
+- 基于真实的公司发布、媒体报道或研究论文
+
+## 输出格式
+返回一个纯 JSON 数组（不要用 markdown 代码块包裹），每条新闻包含以下字段：
+
+[
+  {
+    "title": "新闻标题（简洁明确，15-30字）",
+    "summary": "详细摘要（客观描述事件经过、关键数据、影响范围，80-150字）",
+    "category": "分类（从以下选择：AI, HARDWARE, RESEARCH, POLICY, BUSINESS, ETHICS, APPLICATION）",
+    "region": "地区（从以下选择：NORTH_AMERICA, EUROPE, ASIA, GLOBAL）",
+    "impact": 70-95的整数（基于行业影响力）,
+    "source": "具体来源（如：OpenAI官方博客、TechCrunch、arXiv、GitHub等）"
+  }
+]`;
+
+      const response = await this.callGLM(prompt);
+
+      // 清理响应
+      let cleanedResponse = response.trim();
+      cleanedResponse = cleanedResponse.replace(/^```json\s*/i, '');
+      cleanedResponse = cleanedResponse.replace(/^```\s*/i, '');
+      cleanedResponse = cleanedResponse.replace(/\s*```$/i, '');
+      cleanedResponse = cleanedResponse.trim();
+
+      const newsItems = JSON.parse(cleanedResponse);
+
+      if (!Array.isArray(newsItems)) {
+        this.logger.error('GLM response is not an array');
+        return [];
+      }
+
+      return newsItems;
+    } catch (error: any) {
+      this.logger.error(`Failed to generate realtime news: ${error.message}`, error.stack);
+      return [];
+    }
+  }
 }
