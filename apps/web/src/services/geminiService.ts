@@ -37,10 +37,9 @@ export async function fetchRealtimeNews(): Promise<NewsItem[]> {
       id: `news-${Date.now()}-${index}`,
       title: item.title || "Untitled News",
       summary: item.summary || "No summary available.",
-      whyItMatters: "Impact analysis available upon request.",
       category: mapCategory(item.category) || NewsCategory.AI,
       region: mapRegion(item.region) || Region.GLOBAL,
-      impactScore: typeof item.impact === 'number' ? item.impact : 75,
+      impact: typeof item.impact === 'number' ? item.impact : 75,
       source: item.source || "AI Generated",
       url: `https://www.google.com/search?q=${encodeURIComponent(item.title || "")}`,
       timestamp: new Date().toISOString(),
@@ -85,10 +84,9 @@ function getFallbackNews(): NewsItem[] {
       id: 'fallback-1',
       title: 'Backend Connection Error',
       summary: 'Unable to connect to the backend API. Please ensure the backend server is running and accessible.',
-      whyItMatters: 'Backend services are required for AI-generated news.',
       category: NewsCategory.AI,
       region: Region.GLOBAL,
-      impactScore: 50,
+      impact: 50,
       source: 'System',
       url: '',
       timestamp: new Date().toISOString(),
@@ -100,17 +98,16 @@ function getFallbackNews(): NewsItem[] {
  * Generate daily briefing - now calls backend
  */
 export async function generateDailyBriefing(
-  newsItems: NewsItem[],
-  language: string
+  _newsItems: NewsItem[],
+  _language: string
 ): Promise<DailySummary> {
   // TODO: Implement backend endpoint for daily briefing generation
   // For now, return a simple summary
   return {
     date: new Date().toLocaleDateString(),
-    overview: 'Daily briefing will be available soon.',
+    content: 'Daily briefing feature will be available soon.',
+    highlights: [],
     keyTrends: [],
-    majorDevelopments: [],
-    recommendations: [],
   };
 }
 
@@ -126,7 +123,7 @@ export async function translateToChinese(text: string): Promise<string> {
 /**
  * Ask AI a question about a news item - now calls backend
  */
-export async function askAI(question: string, context: string): Promise<string> {
+export async function askAI(_question: string, _context: string): Promise<string> {
   // TODO: Implement backend endpoint for AI Q&A
   // For now, return a placeholder response
   return 'AI Q&A功能即将上线。AI Q&A feature coming soon.';

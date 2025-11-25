@@ -47,8 +47,9 @@ const NewsCard: React.FC<NewsCardProps> = ({
 
     setIsTranslating(true);
     try {
-      const translated = await translateToChinese(item);
-      setTranslatedContent(translated);
+      const translatedTitle = await translateToChinese(item.title);
+      const translatedSummary = await translateToChinese(item.summary);
+      setTranslatedContent({ translatedTitle, translatedSummary });
       setIsTranslated(true);
     } catch (error) {
       console.error('Translation failed:', error);

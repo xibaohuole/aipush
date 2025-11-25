@@ -215,7 +215,8 @@ const App: React.FC = () => {
   const handleAskAI = async () => {
     if (!activeNewsItem || !askQuestion.trim()) return;
     setIsAsking(true);
-    const answer = await askAI(askQuestion, activeNewsItem);
+    const context = `Title: ${activeNewsItem.title}\nSummary: ${activeNewsItem.summary}`;
+    const answer = await askAI(askQuestion, context);
     setAskAnswer(answer);
     setIsAsking(false);
   };
