@@ -47,12 +47,12 @@ export class AIAnalyzerService {
    * 构建分析提示词
    */
   private buildAnalysisPrompt(title: string, content: string): string {
-    return `Analyze this AI news article and provide a structured response in JSON format.
+    return `You are a JSON-only API. Analyze this AI news article and respond with ONLY a raw JSON object.
 
 Title: ${title}
 Content: ${content.substring(0, 2000)}
 
-Please analyze and return ONLY a valid JSON object with the following structure:
+Required JSON structure (respond with ONLY this, no markdown, no code blocks, no explanations):
 {
   "category": "one of: research, product, finance, policy, ethics, robotics, lifestyle, entertainment, meme, other",
   "region": "one of: global, north_america, europe, asia, other",
@@ -62,52 +62,67 @@ Please analyze and return ONLY a valid JSON object with the following structure:
   "tags": ["<tag1>", "<tag2>", "<tag3>"]
 }
 
-Analysis criteria:
-- Category: Choose the most appropriate category based on content
-- Region: Determine the primary geographic focus
-- ImpactScore: Rate 1-10 based on significance to AI field
-- Summary: Concise overview of key points
-- WhyItMatters: Explain the broader implications
-- Tags: 3-5 relevant keywords
-
-Return ONLY the JSON object, no additional text.`;
+CRITICAL: Your response must start with { and end with }. Do NOT wrap in markdown code blocks. Do NOT add any text before or after the JSON.`;
   }
 
   /**
-   * 调用 GLM API
+   * 调用 GLM API（带重试机制）
    */
-  private async callGLM(prompt: string): Promise<string> {
-    const response = await fetch(this.glmApiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.glmApiKey}`,
-      },
-      body: JSON.stringify({
-        model: 'glm-4',
-        messages: [
-          {
-            role: 'user',
-            content: prompt,
+  private async callGLM(prompt: string, retries: number = 3): Promise<string> {
+    let lastError: Error | null = null;
+
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        const response = await fetch(this.glmApiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${this.glmApiKey}`,
           },
-        ],
-        temperature: 0.3, // 较低温度以获得更一致的结果
-        top_p: 0.7,
-      }),
-    });
+          body: JSON.stringify({
+            model: 'glm-4.5-air',
+            messages: [
+              {
+                role: 'system',
+                content: 'You are a JSON-only API. Always respond with valid JSON objects only, without markdown formatting or explanations.',
+              },
+              {
+                role: 'user',
+                content: prompt,
+              },
+            ],
+            temperature: 0.1, // 降低温度以获得更一致的格式
+            top_p: 0.7,
+          }),
+        });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`GLM API error (${response.status}): ${errorText}`);
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`GLM API error (${response.status}): ${errorText}`);
+        }
+
+        const data: any = await response.json();
+
+        if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+          throw new Error('Invalid GLM API response format');
+        }
+
+        return data.choices[0].message.content;
+      } catch (error: any) {
+        lastError = error;
+        this.logger.warn(
+          `GLM API call failed (attempt ${attempt}/${retries}): ${error.message}`
+        );
+
+        if (attempt < retries) {
+          // 指数退避：等待 1s, 2s, 4s...
+          const delay = Math.pow(2, attempt - 1) * 1000;
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
     }
 
-    const data: any = await response.json();
-
-    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-      throw new Error('Invalid GLM API response format');
-    }
-
-    return data.choices[0].message.content;
+    throw lastError || new Error('GLM API call failed after retries');
   }
 
   /**
@@ -115,13 +130,32 @@ Return ONLY the JSON object, no additional text.`;
    */
   private parseGLMResponse(response: string, fallbackCategory?: string): NewsAnalysisResult {
     try {
-      // 尝试提取 JSON 对象
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error('No JSON object found in response');
+      // 清理响应：移除可能的 markdown 代码块
+      let cleanedResponse = response.trim();
+
+      // 移除 markdown 代码块标记
+      cleanedResponse = cleanedResponse.replace(/^```json\s*/i, '');
+      cleanedResponse = cleanedResponse.replace(/^```\s*/i, '');
+      cleanedResponse = cleanedResponse.replace(/\s*```$/i, '');
+      cleanedResponse = cleanedResponse.trim();
+
+      // 尝试直接解析
+      let parsed;
+      try {
+        parsed = JSON.parse(cleanedResponse);
+      } catch (e) {
+        // 如果直接解析失败，尝试提取 JSON 对象
+        const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+          throw new Error('No JSON object found in response');
+        }
+        parsed = JSON.parse(jsonMatch[0]);
       }
 
-      const parsed = JSON.parse(jsonMatch[0]);
+      // 验证必需字段
+      if (!parsed.category || !parsed.region || typeof parsed.impactScore !== 'number') {
+        this.logger.warn('Response missing required fields, using defaults');
+      }
 
       return {
         category: this.validateCategory(parsed.category) || fallbackCategory || 'other',

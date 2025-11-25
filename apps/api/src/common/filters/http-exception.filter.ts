@@ -16,6 +16,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
+    const request = ctx.getRequest();
 
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let message = 'Internal server error';
@@ -50,9 +51,15 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
     response.status(status).json(errorResponse);
 
-    this.logger.error(
-      `HTTP ${status} Error: ${message}`,
-      exception instanceof Error ? exception.stack : undefined,
-    );
+    // Ignore common browser requests that don't need logging
+    const ignoredPaths = ['/favicon.ico', '/robots.txt', '/apple-touch-icon.png'];
+    const shouldLog = !ignoredPaths.some(path => request.url === path);
+
+    if (shouldLog) {
+      this.logger.error(
+        `HTTP ${status} Error: ${message}`,
+        exception instanceof Error ? exception.stack : undefined,
+      );
+    }
   }
 }

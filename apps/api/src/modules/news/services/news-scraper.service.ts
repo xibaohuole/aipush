@@ -3,6 +3,7 @@ import { PrismaService } from '../../../common/prisma/prisma.service';
 import { RSSParserService, ParsedNewsItem } from './rss-parser.service';
 import { AIAnalyzerService } from './ai-analyzer.service';
 import { getEnabledSources, NewsSource } from '../config/news-sources.config';
+import pLimit from 'p-limit';
 
 /**
  * 新闻爬取服务
@@ -20,6 +21,7 @@ export class NewsScraperService {
 
   /**
    * 执行完整的新闻爬取流程
+   * 使用并发处理提升性能
    */
   async scrapeNews(): Promise<{
     total: number;
@@ -46,7 +48,7 @@ export class NewsScraperService {
 
     this.logger.log(`Parsed ${parsedItems.length} news items from RSS feeds`);
 
-    // 处理每个新闻条目
+    // 处理每个新闻条目（并发处理，限制并发数为 5）
     const stats = {
       total: parsedItems.length,
       new: 0,
@@ -54,21 +56,32 @@ export class NewsScraperService {
       failed: 0,
     };
 
-    for (const item of parsedItems) {
-      try {
-        const source = sources.find(s => s.name === item.source);
-        const result = await this.processNewsItem(item, source);
+    // 创建并发限制器（同时最多处理 5 条新闻）
+    const limit = pLimit(5);
 
-        if (result === 'new') stats.new++;
-        else if (result === 'duplicate') stats.duplicate++;
-      } catch (error: any) {
+    // 并发处理所有新闻条目
+    const results = await Promise.allSettled(
+      parsedItems.map(item =>
+        limit(async () => {
+          const source = sources.find(s => s.name === item.source);
+          return this.processNewsItem(item, source);
+        })
+      )
+    );
+
+    // 统计结果
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled') {
+        if (result.value === 'new') stats.new++;
+        else if (result.value === 'duplicate') stats.duplicate++;
+      } else {
         this.logger.error(
-          `Failed to process news item: ${item.title}`,
-          error.stack
+          `Failed to process news item: ${parsedItems[index].title}`,
+          result.reason
         );
         stats.failed++;
       }
-    }
+    });
 
     this.logger.log(
       `Scraping complete: ${stats.new} new, ${stats.duplicate} duplicates, ${stats.failed} failed`

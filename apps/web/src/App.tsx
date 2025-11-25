@@ -10,6 +10,7 @@ import AddNewsModal from './components/AddNewsModal';
 import DashboardStats from './components/DashboardStats';
 import { ViewState, NewsItem, DailySummary, NewsCategory, Region, ViewMode } from './types';
 import { fetchRealtimeNews, generateDailyBriefing, askAI } from './services/geminiService';
+import { fetchNewsFromAPI } from './services/newsService';
 import {
   getBookmarks,
   saveBookmarks,
@@ -102,20 +103,39 @@ const App: React.FC = () => {
       // Try to use cached news first
       const cached = getCachedNews();
       if (cached && isCacheValid()) {
-        console.log('Using cached news data');
+        console.log('📦 Using cached news data');
         setNewsItems([...customItems, ...cached]);
         return;
       }
 
       // Cache miss or expired - fetch fresh data
       setIsProcessing(true);
-      const items = await fetchRealtimeNews();
 
-      // Save to cache
-      saveCachedNews(items);
+      try {
+        // 优先从后端 API 获取数据
+        console.log('🌐 Fetching news from backend API...');
+        const items = await fetchNewsFromAPI({ limit: 50 });
 
-      setNewsItems([...customItems, ...items]);
-      setIsProcessing(false);
+        // Save to cache
+        saveCachedNews(items);
+        setNewsItems([...customItems, ...items]);
+        console.log('✅ Successfully loaded news from API');
+      } catch (apiError) {
+        console.warn('⚠️ API failed, falling back to GLM direct call:', apiError);
+
+        // 如果后端 API 失败，降级到直接调用 GLM
+        try {
+          const items = await fetchRealtimeNews();
+          saveCachedNews(items);
+          setNewsItems([...customItems, ...items]);
+          console.log('✅ Successfully loaded news from GLM fallback');
+        } catch (glmError) {
+          console.error('❌ Both API and GLM failed:', glmError);
+          // 保留空数组，让用户看到"无新闻"提示
+        }
+      } finally {
+        setIsProcessing(false);
+      }
     };
     loadData();
   }, []);
@@ -158,17 +178,38 @@ const App: React.FC = () => {
 
   const handleRefresh = async () => {
     setIsProcessing(true);
-    const items = await fetchRealtimeNews();
     const customItems = newsItems.filter((n) => n.isCustom);
 
-    // Update custom news in localStorage
-    saveCustomNews(customItems);
+    try {
+      // 优先从后端 API 刷新
+      console.log('🔄 Refreshing news from backend API...');
+      const items = await fetchNewsFromAPI({ limit: 50 });
 
-    // Save fresh news to cache
-    saveCachedNews(items);
+      // Update custom news in localStorage
+      saveCustomNews(customItems);
 
-    setNewsItems([...customItems, ...items]);
-    setIsProcessing(false);
+      // Save fresh news to cache
+      saveCachedNews(items);
+
+      setNewsItems([...customItems, ...items]);
+      console.log('✅ News refreshed from API');
+    } catch (apiError) {
+      console.warn('⚠️ API refresh failed, falling back to GLM:', apiError);
+
+      // 降级到 GLM
+      try {
+        const items = await fetchRealtimeNews();
+        saveCustomNews(customItems);
+        saveCachedNews(items);
+        setNewsItems([...customItems, ...items]);
+        console.log('✅ News refreshed from GLM fallback');
+      } catch (glmError) {
+        console.error('❌ Refresh failed:', glmError);
+        // 保持当前数据不变
+      }
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const handleAskAI = async () => {

@@ -8,14 +8,35 @@ import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
+import { PortManager } from './utils/port-manager';
 
 async function bootstrap() {
+  const port = process.env.PORT ? parseInt(process.env.PORT) : 4000;
+
+  // Check for existing instance
+  const hasExistingInstance = await PortManager.checkExistingInstance();
+  if (hasExistingInstance) {
+    console.error('❌ Another instance is already running. Killing it...');
+    await PortManager.killPortProcess(port);
+    await new Promise(resolve => setTimeout(resolve, 2000));
+  }
+
+  // Ensure port is available
+  try {
+    await PortManager.ensurePortAvailable(port);
+  } catch (error) {
+    console.error('❌ Failed to ensure port availability:', error);
+    process.exit(1);
+  }
+
+  // Create lock file and setup cleanup
+  PortManager.createLockFile(port);
+  PortManager.setupLockFileCleanup();
   const app = await NestFactory.create(AppModule, {
     logger: ['error', 'warn', 'log', 'debug', 'verbose'],
   });
 
   const configService = app.get(ConfigService);
-  const port = configService.get<number>('PORT', 4000);
   const env = configService.get<string>('NODE_ENV', 'development');
 
   // Security
@@ -90,7 +111,7 @@ async function bootstrap() {
     });
   }
 
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
 
   console.log(`
   ╔════════════════════════════════════════════╗

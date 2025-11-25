@@ -8,13 +8,14 @@ import { NewsScraperService } from './services/news-scraper.service';
 
 // Controllers
 import { NewsScraperController } from './controllers/news-scraper.controller';
+import { NewsController } from './controllers/news.controller';
 
 // Schedulers
 import { NewsScraperScheduler } from './schedulers/news-scraper.scheduler';
 
 @Module({
   imports: [ConfigModule],
-  controllers: [NewsScraperController],
+  controllers: [NewsScraperController, NewsController],
   providers: [
     RSSParserService,
     AIAnalyzerService,
