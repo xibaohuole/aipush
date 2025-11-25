@@ -22,8 +22,40 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Environment variables - CRITICAL: Never commit!
 .env
+.env.*
+!.env.example
+!.env.template
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.template
+
+# API Keys and Secrets
+**/secrets/
+*.pem
+*.key
+*.cert
+*.crt
 
 # Port lock files
 .port.lock
-*.lock
+
+# Temporary files
+*.tmp
+*.temp
+nul
+**/*nul
+
+# Development files
+.nodemon-restart
+test-*.js
+PORT-MANAGEMENT.md
+
+# Turbo
+.turbo/
+
+# Build artifacts
+*.tsbuildinfo
