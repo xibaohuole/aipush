@@ -157,6 +157,24 @@ importers:
       '@prisma/client':
         specifier: ^6.4.0
         version: 6.19.0(prisma@6.19.0(typescript@5.8.3))(typescript@5.8.3)
+      '@types/bcryptjs':
+        specifier: ^2.4.6
+        version: 2.4.6
+      '@types/compression':
+        specifier: ^1.7.5
+        version: 1.8.1
+      '@types/express':
+        specifier: ^5.0.0
+        version: 5.0.5
+      '@types/node':
+        specifier: ^22.14.0
+        version: 22.19.1
+      '@types/passport-google-oauth20':
+        specifier: ^2.0.16
+        version: 2.0.17
+      '@types/passport-jwt':
+        specifier: ^4.0.1
+        version: 4.0.1
       axios:
         specifier: ^1.7.9
         version: 1.13.2
@@ -224,27 +242,9 @@ importers:
       '@nestjs/testing':
         specifier: ^11.0.8
         version: 11.1.9(@nestjs/common@11.1.9(class-transformer@0.5.1)(class-validator@0.14.2)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.9)(@nestjs/platform-express@11.1.9)
-      '@types/bcryptjs':
-        specifier: ^2.4.6
-        version: 2.4.6
-      '@types/compression':
-        specifier: ^1.7.5
-        version: 1.8.1
-      '@types/express':
-        specifier: ^5.0.0
-        version: 5.0.5
       '@types/jest':
         specifier: ^29.5.14
         version: 29.5.14
-      '@types/node':
-        specifier: ^22.14.0
-        version: 22.19.1
-      '@types/passport-google-oauth20':
-        specifier: ^2.0.16
-        version: 2.0.17
-      '@types/passport-jwt':
-        specifier: ^4.0.1
-        version: 4.0.1
       '@types/supertest':
         specifier: ^6.0.2
         version: 6.0.3
