@@ -4,6 +4,7 @@
   "description": "AI Pulse Daily Backend API",
   "private": true,
   "scripts": {
+    "postinstall": "mkdir -p prisma && cp ../../database/prisma/schema.prisma prisma/schema.prisma || true",
     "dev": "nodemon",
     "dev:debug": "nodemon --inspect",
     "dev:legacy": "npx ts-node src/main.ts",
