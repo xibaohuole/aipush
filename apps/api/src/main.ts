@@ -12,26 +12,31 @@ import { PortManager } from './utils/port-manager';
 
 async function bootstrap() {
   const port = process.env.PORT ? parseInt(process.env.PORT) : 4000;
+  const isProduction = process.env.NODE_ENV === 'production';
 
-  // Check for existing instance
-  const hasExistingInstance = await PortManager.checkExistingInstance();
-  if (hasExistingInstance) {
-    console.error('❌ Another instance is already running. Killing it...');
-    await PortManager.killPortProcess(port);
-    await new Promise(resolve => setTimeout(resolve, 2000));
+  // Skip port management in production (Render, Railway, etc.)
+  if (!isProduction) {
+    // Check for existing instance
+    const hasExistingInstance = await PortManager.checkExistingInstance();
+    if (hasExistingInstance) {
+      console.error('❌ Another instance is already running. Killing it...');
+      await PortManager.killPortProcess(port);
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+
+    // Ensure port is available
+    try {
+      await PortManager.ensurePortAvailable(port);
+    } catch (error) {
+      console.error('❌ Failed to ensure port availability:', error);
+      process.exit(1);
+    }
+
+    // Create lock file and setup cleanup
+    PortManager.createLockFile(port);
+    PortManager.setupLockFileCleanup();
   }
 
-  // Ensure port is available
-  try {
-    await PortManager.ensurePortAvailable(port);
-  } catch (error) {
-    console.error('❌ Failed to ensure port availability:', error);
-    process.exit(1);
-  }
-
-  // Create lock file and setup cleanup
-  PortManager.createLockFile(port);
-  PortManager.setupLockFileCleanup();
   const app = await NestFactory.create(AppModule, {
     logger: ['error', 'warn', 'log', 'debug', 'verbose'],
   });

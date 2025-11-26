@@ -32,7 +32,7 @@ services:
           property: port
       - key: CORS_ORIGIN
         value: https://xibaohuole.github.io
-    healthCheckPath: /api/health
+    healthCheckPath: /api/v1/health
 
 databases:
   # PostgreSQL 数据库
