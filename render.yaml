@@ -5,8 +5,8 @@ services:
     name: aipush-backend
     runtime: node
     plan: free
-    buildCommand: cd apps/api && npm install -g pnpm && pnpm install && pnpm build
-    startCommand: cd apps/api && pnpm start:prod
+    buildCommand: cd apps/api && npm install -g pnpm && pnpm install && pnpm prisma:generate && pnpm build
+    startCommand: cd apps/api && node dist/main.js
     envVars:
       - key: NODE_ENV
         value: production
@@ -31,7 +31,7 @@ services:
           name: aipush-redis
           property: port
       - key: CORS_ORIGIN
-        sync: false
+        value: https://xibaohuole.github.io
     healthCheckPath: /api/health
 
 databases:
