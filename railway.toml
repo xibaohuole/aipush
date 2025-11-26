@@ -1,0 +1,25 @@
+# Railway 部署配置
+[build]
+builder = "NIXPACKS"
+buildCommand = "cd apps/api && pnpm install && pnpm build"
+
+[deploy]
+startCommand = "cd apps/api && pnpm start:prod"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
+
+[[healthcheck]]
+path = "/api/health"
+timeout = 100
+interval = 60
+
+[env]
+# 这些环境变量需要在 Railway Dashboard 中配置
+# GLM_API_KEY
+# DATABASE_URL (PostgreSQL)
+# REDIS_HOST
+# REDIS_PORT
+# JWT_SECRET
+# CORS_ORIGIN
+# NODE_ENV=production
+# PORT=4000

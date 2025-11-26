@@ -31,13 +31,14 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Turbo Cache
-        uses: actions/cache@v4
-        with:
-          path: .turbo
-          key: ${{ runner.os }}-turbo-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-turbo-
+      # Turbo Cache temporarily disabled to force clean rebuild
+      # - name: Turbo Cache
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: .turbo
+      #     key: ${{ runner.os }}-turbo-${{ github.sha }}
+      #     restore-keys: |
+      #       ${{ runner.os }}-turbo-
 
       - name: Lint
         run: pnpm run lint
@@ -52,7 +53,7 @@ jobs:
       - name: Build
         run: pnpm run build
         env:
-          VITE_GLM_API_KEY: ${{ secrets.VITE_GLM_API_KEY }}
+          # Frontend only needs to know backend API URL, not AI API keys
           VITE_API_URL: 'http://localhost:4000/api/v1'
 
       - name: Upload build artifacts

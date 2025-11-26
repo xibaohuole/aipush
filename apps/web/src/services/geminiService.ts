@@ -2,6 +2,7 @@ import { DailySummary, NewsCategory, NewsItem, Region } from '../types';
 
 // ⚠️ SECURITY: API keys are now handled securely by the backend
 // The frontend should NEVER contain API keys or make direct AI API calls
+// Last security update: 2025-11-26 - Forced rebuild to clear cache
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api/v1';
 

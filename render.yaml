@@ -1,0 +1,46 @@
+# Render 部署配置
+services:
+  # 后端 API 服务
+  - type: web
+    name: aipush-backend
+    runtime: node
+    plan: free
+    buildCommand: cd apps/api && npm install -g pnpm && pnpm install && pnpm build
+    startCommand: cd apps/api && pnpm start:prod
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 4000
+      - key: GLM_API_KEY
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: aipush-db
+          property: connectionString
+      - key: REDIS_HOST
+        fromService:
+          type: redis
+          name: aipush-redis
+          property: host
+      - key: REDIS_PORT
+        fromService:
+          type: redis
+          name: aipush-redis
+          property: port
+      - key: CORS_ORIGIN
+        sync: false
+    healthCheckPath: /api/health
+
+databases:
+  # PostgreSQL 数据库
+  - name: aipush-db
+    plan: free
+    databaseName: aipush
+    user: aipush
+
+  # Redis 缓存
+  - name: aipush-redis
+    plan: free
