@@ -1,6 +1,5 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { RedisService } from '../../../common/redis/redis.service';
 import { CacheStrategyService } from '../../../common/redis/cache-strategy.service';
 
 interface NewsAnalysisResult {
@@ -27,7 +26,6 @@ export class AIAnalyzerService implements OnModuleInit {
 
   constructor(
     private configService: ConfigService,
-    private redisService: RedisService,
     private cacheStrategy: CacheStrategyService,
   ) {
     this.glmApiKey = this.configService.get<string>('GLM_API_KEY') || '';

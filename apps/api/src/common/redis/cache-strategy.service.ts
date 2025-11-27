@@ -5,7 +5,7 @@ import { ConfigService } from '@nestjs/config';
 /**
  * 缓存策略配置
  */
-interface CacheConfig {
+export interface CacheConfig {
   defaultTTL: number; // 默认过期时间（秒）
   hotTTL: number; // 热门内容过期时间（秒）
   warmupEnabled: boolean; // 是否启用缓存预热
