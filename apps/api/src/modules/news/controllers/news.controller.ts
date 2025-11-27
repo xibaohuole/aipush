@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Delete,
   Param,
   Query,
   ParseIntPipe,
@@ -9,6 +10,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { PrismaService } from '../../../common/prisma/prisma.service';
+import { RedisService } from '../../../common/redis/redis.service';
 import { AIAnalyzerService } from '../services/ai-analyzer.service';
 
 /**
@@ -20,6 +22,7 @@ import { AIAnalyzerService } from '../services/ai-analyzer.service';
 export class NewsController {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly redisService: RedisService,
     private readonly aiAnalyzer: AIAnalyzerService,
   ) {}
 
@@ -262,6 +265,32 @@ export class NewsController {
         error: {
           code: 'AI_GENERATION_FAILED',
           message: 'Failed to generate AI news',
+        },
+      };
+    }
+  }
+
+  /**
+   * 清除AI新闻缓存
+   */
+  @Delete('cache/ai-news')
+  @ApiOperation({ summary: '清除AI新闻缓存' })
+  async clearAINewsCache() {
+    try {
+      const deletedCount = await this.redisService.deleteByPattern('ai-news:*');
+      return {
+        success: true,
+        message: `Successfully cleared ${deletedCount} cached items`,
+        data: {
+          deletedCount,
+        },
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: {
+          code: 'CACHE_CLEAR_FAILED',
+          message: 'Failed to clear cache',
         },
       };
     }

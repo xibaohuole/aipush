@@ -185,6 +185,32 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
+   * 删除匹配模式的所有键
+   * @param pattern 匹配模式，例如 "ai-news:*"
+   * @returns 删除的键数量
+   */
+  async deleteByPattern(pattern: string): Promise<number> {
+    if (!this.client || !this.isConnected) {
+      return 0;
+    }
+
+    try {
+      const keys = await this.client.keys(pattern);
+      if (keys.length === 0) {
+        this.logger.log(`No keys found matching pattern: ${pattern}`);
+        return 0;
+      }
+
+      await this.client.del(...keys);
+      this.logger.log(`Deleted ${keys.length} keys matching pattern: ${pattern}`);
+      return keys.length;
+    } catch (error: any) {
+      this.logger.error(`Failed to delete keys by pattern ${pattern}: ${error.message}`);
+      return 0;
+    }
+  }
+
+  /**
    * 检查 Redis 是否可用
    */
   isAvailable(): boolean {
