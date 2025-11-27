@@ -28,7 +28,7 @@ export class AIAnalyzerService implements OnModuleInit {
     private configService: ConfigService,
     private cacheStrategy: CacheStrategyService,
   ) {
-    this.glmApiKey = this.configService.get<string>('GLM_API_KEY') || '';
+    this.glmApiKey = this.configService.get<string>('glm.apiKey') || '';
   }
 
   /**
