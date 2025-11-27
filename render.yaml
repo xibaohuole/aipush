@@ -5,8 +5,8 @@ services:
     name: aipush-backend
     runtime: node
     plan: free
-    buildCommand: cd apps/api && npm install -g pnpm && pnpm install && pnpm prisma:generate && pnpm prisma:push && pnpm build
-    startCommand: cd apps/api && node dist/apps/api/src/main.js
+    buildCommand: cd apps/api && npm install -g pnpm && pnpm install && pnpm prisma:generate && pnpm build
+    startCommand: cd apps/api && pnpm start:prod
     envVars:
       - key: NODE_ENV
         value: production
