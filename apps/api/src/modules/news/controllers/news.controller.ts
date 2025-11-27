@@ -113,6 +113,45 @@ export class NewsController {
   }
 
   /**
+   * 获取缓存统计信息
+   */
+  @Get('cache/stats')
+  @ApiOperation({ summary: '获取缓存统计信息' })
+  async getCacheStats() {
+    const stats = this.cacheStrategy.getStats();
+    return {
+      success: true,
+      data: stats,
+    };
+  }
+
+  /**
+   * 清除AI新闻缓存
+   */
+  @Delete('cache/ai-news')
+  @ApiOperation({ summary: '清除AI新闻缓存' })
+  async clearAINewsCache() {
+    try {
+      const deletedCount = await this.redisService.deleteByPattern('ai-news:*');
+      return {
+        success: true,
+        message: `Successfully cleared ${deletedCount} cached items`,
+        data: {
+          deletedCount,
+        },
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: {
+          code: 'CACHE_CLEAR_FAILED',
+          message: 'Failed to clear cache',
+        },
+      };
+    }
+  }
+
+  /**
    * 获取单个新闻详情（使用动态TTL缓存）
    */
   @Get(':id')
@@ -294,42 +333,4 @@ export class NewsController {
     }
   }
 
-  /**
-   * 清除AI新闻缓存
-   */
-  @Delete('cache/ai-news')
-  @ApiOperation({ summary: '清除AI新闻缓存' })
-  async clearAINewsCache() {
-    try {
-      const deletedCount = await this.redisService.deleteByPattern('ai-news:*');
-      return {
-        success: true,
-        message: `Successfully cleared ${deletedCount} cached items`,
-        data: {
-          deletedCount,
-        },
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: {
-          code: 'CACHE_CLEAR_FAILED',
-          message: 'Failed to clear cache',
-        },
-      };
-    }
-  }
-
-  /**
-   * 获取缓存统计信息
-   */
-  @Get('cache/stats')
-  @ApiOperation({ summary: '获取缓存统计信息' })
-  async getCacheStats() {
-    const stats = this.cacheStrategy.getStats();
-    return {
-      success: true,
-      data: stats,
-    };
-  }
 }
