@@ -45,6 +45,17 @@ const NewsCard: React.FC<NewsCardProps> = ({
       return;
     }
 
+    // 优先使用预生成的中文翻译
+    if (item.titleCn && item.summaryCn) {
+      setTranslatedContent({
+        translatedTitle: item.titleCn,
+        translatedSummary: item.summaryCn
+      });
+      setIsTranslated(true);
+      return;
+    }
+
+    // 如果没有预生成的翻译，则调用 API（向后兼容）
     setIsTranslating(true);
     try {
       const translatedTitle = await translateToChinese(item.title);

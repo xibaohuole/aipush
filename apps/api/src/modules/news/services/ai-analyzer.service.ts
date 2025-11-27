@@ -9,6 +9,9 @@ interface NewsAnalysisResult {
   summary: string;
   whyItMatters: string;
   tags: string[];
+  // 中文翻译字段
+  summaryCn?: string;
+  whyItMattersCn?: string;
 }
 
 /**
@@ -62,7 +65,9 @@ Required JSON structure (respond with ONLY this, no markdown, no code blocks, no
   "region": "one of: global, north_america, europe, asia, other",
   "impactScore": <number 1-10>,
   "summary": "<2-3 sentence summary in English>",
-  "whyItMatters": "<1-2 sentences explaining significance>",
+  "summaryCn": "<2-3句中文摘要>",
+  "whyItMatters": "<1-2 sentences explaining significance in English>",
+  "whyItMattersCn": "<1-2句中文解释其重要性>",
   "tags": ["<tag1>", "<tag2>", "<tag3>"]
 }
 
@@ -168,6 +173,9 @@ CRITICAL: Your response must start with { and end with }. Do NOT wrap in markdow
         summary: parsed.summary || 'No summary available',
         whyItMatters: parsed.whyItMatters || '',
         tags: Array.isArray(parsed.tags) ? parsed.tags.slice(0, 5) : [],
+        // 中文翻译字段
+        summaryCn: parsed.summaryCn || '',
+        whyItMattersCn: parsed.whyItMattersCn || '',
       };
     } catch (error: any) {
       this.logger.error(`Failed to parse GLM response: ${error.message}`);
@@ -272,8 +280,10 @@ CRITICAL: Your response must start with { and end with }. Do NOT wrap in markdow
 
 [
   {
-    "title": "新闻标题（简洁明确，15-30字）",
-    "summary": "详细摘要（客观描述事件经过、关键数据、影响范围，80-150字）",
+    "title": "新闻标题（英文，简洁明确，15-30字）",
+    "titleCn": "新闻标题（中文翻译，15-30字）",
+    "summary": "详细摘要（英文，客观描述事件经过、关键数据、影响范围，80-150字）",
+    "summaryCn": "详细摘要（中文翻译，客观描述事件经过、关键数据、影响范围，80-150字）",
     "category": "分类（从以下选择：AI, HARDWARE, RESEARCH, POLICY, BUSINESS, ETHICS, APPLICATION）",
     "region": "地区（从以下选择：NORTH_AMERICA, EUROPE, ASIA, GLOBAL）",
     "impact": 70-95的整数（基于行业影响力）,

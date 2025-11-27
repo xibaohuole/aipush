@@ -32,8 +32,11 @@ export interface Comment {
 export interface NewsItem {
   id: string;
   title: string;
+  titleCn?: string; // 中文标题翻译
   summary: string;
+  summaryCn?: string; // 中文摘要翻译
   whyItMatters: string; // New: "一句话影响"
+  whyItMattersCn?: string; // 中文"一句话影响"翻译
   source: string;
   url: string;
   category: NewsCategory;
