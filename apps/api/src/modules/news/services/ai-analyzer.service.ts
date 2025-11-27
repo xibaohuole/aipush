@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { RedisService } from '../../../common/redis/redis.service';
 
 interface NewsAnalysisResult {
   category: string;
@@ -20,7 +21,10 @@ export class AIAnalyzerService {
   private readonly glmApiKey: string;
   private readonly glmApiUrl = 'https://open.bigmodel.cn/api/paas/v4/chat/completions';
 
-  constructor(private configService: ConfigService) {
+  constructor(
+    private configService: ConfigService,
+    private redisService: RedisService,
+  ) {
     this.glmApiKey = this.configService.get<string>('GLM_API_KEY') || '';
   }
 
@@ -235,8 +239,21 @@ CRITICAL: Your response must start with { and end with }. Do NOT wrap in markdow
       return [];
     }
 
+    // 生成缓存键（基于日期和数量）
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const cacheKey = `ai-news:${today}:count-${count}`;
+
+    // 尝试从缓存获取
+    const cachedNews = await this.redisService.get<any[]>(cacheKey);
+    if (cachedNews) {
+      this.logger.log(`Returning cached news for ${today} (${cachedNews.length} items)`);
+      return cachedNews;
+    }
+
+    this.logger.log(`Cache miss for ${cacheKey}, generating new news...`);
+
     try {
-      const today = new Date().toLocaleDateString('zh-CN', {
+      const todayFormatted = new Date().toLocaleDateString('zh-CN', {
         year: 'numeric',
         month: 'long',
         day: 'numeric',
@@ -245,7 +262,7 @@ CRITICAL: Your response must start with { and end with }. Do NOT wrap in markdow
       const prompt = `你是一个JSON-only API。请基于你的知识库，生成${count}条最近一周内的AI行业新闻。
 
 ## 核心要求
-- 今天是 ${today}
+- 今天是 ${todayFormatted}
 - 只提供**真实、可验证**的新闻，不要编造或推测
 - 如果不确定某件事，宁可不提及
 - 基于真实的公司发布、媒体报道或研究论文
@@ -279,6 +296,10 @@ CRITICAL: Your response must start with { and end with }. Do NOT wrap in markdow
         this.logger.error('GLM response is not an array');
         return [];
       }
+
+      // 缓存结果（30分钟 = 1800秒）
+      await this.redisService.set(cacheKey, newsItems, 1800);
+      this.logger.log(`Cached ${newsItems.length} news items for ${today}`);
 
       return newsItems;
     } catch (error: any) {
