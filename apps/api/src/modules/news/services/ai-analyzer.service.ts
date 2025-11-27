@@ -1,6 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { RedisService } from '../../../common/redis/redis.service';
+import { CacheStrategyService } from '../../../common/redis/cache-strategy.service';
 
 interface NewsAnalysisResult {
   category: string;
@@ -19,7 +20,7 @@ interface NewsAnalysisResult {
  * 使用 GLM API 分析新闻内容
  */
 @Injectable()
-export class AIAnalyzerService {
+export class AIAnalyzerService implements OnModuleInit {
   private readonly logger = new Logger(AIAnalyzerService.name);
   private readonly glmApiKey: string;
   private readonly glmApiUrl = 'https://open.bigmodel.cn/api/paas/v4/chat/completions';
@@ -27,8 +28,54 @@ export class AIAnalyzerService {
   constructor(
     private configService: ConfigService,
     private redisService: RedisService,
+    private cacheStrategy: CacheStrategyService,
   ) {
     this.glmApiKey = this.configService.get<string>('GLM_API_KEY') || '';
+  }
+
+  /**
+   * 模块初始化时执行缓存预热
+   */
+  async onModuleInit() {
+    // 延迟 3 秒后开始预热，避免影响应用启动速度
+    setTimeout(() => {
+      this.warmupCache();
+    }, 3000);
+  }
+
+  /**
+   * 缓存预热：应用启动时预加载热门新闻
+   */
+  private async warmupCache() {
+    if (!this.glmApiKey) {
+      this.logger.log('GLM API key not configured, skipping cache warmup');
+      return;
+    }
+
+    this.logger.log('Starting AI news cache warmup...');
+
+    try {
+      // 生成今天的新闻并缓存
+      const today = new Date().toISOString().split('T')[0];
+      const cacheKey = `ai-news:${today}:count-8`;
+
+      // 检查缓存是否已存在
+      const existingCache = await this.cacheStrategy.get(cacheKey);
+      if (existingCache) {
+        this.logger.log('Cache already exists, skipping warmup');
+        return;
+      }
+
+      // 生成新闻
+      const newsItems = await this.generateNewsInternal(8);
+
+      // 使用智能缓存策略存储
+      await this.cacheStrategy.set(cacheKey, newsItems, 1800); // 30分钟
+
+      this.logger.log(`Cache warmup completed: ${newsItems.length} items loaded`);
+    } catch (error: any) {
+      this.logger.warn(`Cache warmup failed: ${error.message}`);
+    }
   }
 
   /**
@@ -251,14 +298,28 @@ CRITICAL: Your response must start with { and end with }. Do NOT wrap in markdow
     const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
     const cacheKey = `ai-news:${today}:count-${count}`;
 
-    // 尝试从缓存获取
-    const cachedNews = await this.redisService.get<any[]>(cacheKey);
+    // 尝试从智能缓存获取（支持降级到内存缓存）
+    const cachedNews = await this.cacheStrategy.get<any[]>(cacheKey);
     if (cachedNews) {
       this.logger.log(`Returning cached news for ${today} (${cachedNews.length} items)`);
       return cachedNews;
     }
 
     this.logger.log(`Cache miss for ${cacheKey}, generating new news...`);
+
+    const newsItems = await this.generateNewsInternal(count);
+
+    // 使用智能缓存策略存储（支持双写到内存缓存）
+    await this.cacheStrategy.set(cacheKey, newsItems, 1800);
+    this.logger.log(`Cached ${newsItems.length} news items for ${today}`);
+
+    return newsItems;
+  }
+
+  /**
+   * 内部新闻生成方法（不涉及缓存）
+   */
+  private async generateNewsInternal(count: number): Promise<any[]> {
 
     try {
       const todayFormatted = new Date().toLocaleDateString('zh-CN', {
@@ -306,10 +367,6 @@ CRITICAL: Your response must start with { and end with }. Do NOT wrap in markdow
         this.logger.error('GLM response is not an array');
         return [];
       }
-
-      // 缓存结果（30分钟 = 1800秒）
-      await this.redisService.set(cacheKey, newsItems, 1800);
-      this.logger.log(`Cached ${newsItems.length} news items for ${today}`);
 
       return newsItems;
     } catch (error: any) {

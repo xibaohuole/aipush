@@ -11,6 +11,7 @@ import {
 import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { RedisService } from '../../../common/redis/redis.service';
+import { CacheStrategyService } from '../../../common/redis/cache-strategy.service';
 import { AIAnalyzerService } from '../services/ai-analyzer.service';
 
 /**
@@ -23,6 +24,7 @@ export class NewsController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly redisService: RedisService,
+    private readonly cacheStrategy: CacheStrategyService,
     private readonly aiAnalyzer: AIAnalyzerService,
   ) {}
 
@@ -111,11 +113,26 @@ export class NewsController {
   }
 
   /**
-   * 获取单个新闻详情
+   * 获取单个新闻详情（使用动态TTL缓存）
    */
   @Get(':id')
   @ApiOperation({ summary: '获取新闻详情' })
   async getNewsById(@Param('id') id: string) {
+    const cacheKey = `news:detail:${id}`;
+
+    // 尝试从缓存获取
+    const cached = await this.cacheStrategy.get(cacheKey);
+    if (cached) {
+      // 异步增加浏览次数（不阻塞响应）
+      this.prisma.news.update({
+        where: { id },
+        data: { viewCount: { increment: 1 } },
+      }).catch(() => {});
+
+      return cached;
+    }
+
+    // 从数据库获取
     const news = await this.prisma.news.findUnique({
       where: { id },
     });
@@ -131,12 +148,19 @@ export class NewsController {
     }
 
     // 增加浏览次数
-    await this.prisma.news.update({
+    const updatedNews = await this.prisma.news.update({
       where: { id },
       data: { viewCount: { increment: 1 } },
     });
 
-    return news;
+    // 使用动态 TTL 缓存（根据热度调整过期时间）
+    await this.cacheStrategy.setWithDynamicTTL(cacheKey, updatedNews, {
+      viewCount: updatedNews.viewCount,
+      impactScore: updatedNews.impactScore,
+      bookmarkCount: updatedNews.bookmarkCount,
+    });
+
+    return updatedNews;
   }
 
   /**
@@ -294,5 +318,18 @@ export class NewsController {
         },
       };
     }
+  }
+
+  /**
+   * 获取缓存统计信息
+   */
+  @Get('cache/stats')
+  @ApiOperation({ summary: '获取缓存统计信息' })
+  async getCacheStats() {
+    const stats = this.cacheStrategy.getStats();
+    return {
+      success: true,
+      data: stats,
+    };
   }
 }
