@@ -1,6 +1,5 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { RedisService } from './redis.service';
-import { ConfigService } from '@nestjs/config';
 
 /**
  * 缓存策略配置
@@ -25,7 +24,6 @@ export class CacheStrategyService implements OnModuleInit {
 
   constructor(
     private readonly redisService: RedisService,
-    private readonly configService: ConfigService,
   ) {
     this.config = {
       defaultTTL: 1800, // 30 分钟

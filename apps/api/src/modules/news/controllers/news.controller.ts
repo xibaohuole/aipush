@@ -195,7 +195,7 @@ export class NewsController {
     // 使用动态 TTL 缓存（根据热度调整过期时间）
     await this.cacheStrategy.setWithDynamicTTL(cacheKey, updatedNews, {
       viewCount: updatedNews.viewCount,
-      impactScore: updatedNews.impactScore,
+      impactScore: updatedNews.impactScore ?? undefined,
       bookmarkCount: updatedNews.bookmarkCount,
     });
 
