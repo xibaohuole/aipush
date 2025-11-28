@@ -85,16 +85,21 @@ export class AIAnalyzerService implements OnModuleInit {
    */
   async analyzeNews(title: string, content: string, sourceCategory?: string): Promise<NewsAnalysisResult> {
     if (!this.glmApiKey) {
-      this.logger.warn('GLM API key not configured, using default values');
+      this.logger.warn('GLM API 密钥未配置，使用默认分析值');
       return this.getDefaultAnalysis(title, content, sourceCategory);
     }
 
     try {
+      this.logger.debug(`开始分析新闻: ${title.substring(0, 50)}...`);
       const prompt = this.buildAnalysisPrompt(title, content);
       const response = await this.callGLM(prompt);
-      return this.parseGLMResponse(response, sourceCategory);
+      const result = this.parseGLMResponse(response, sourceCategory);
+      this.logger.debug(`新闻分析成功: ${title.substring(0, 50)}... -> 类别: ${result.category}, 中文标题: ${result.titleCn ? '已生成' : '未生成'}`);
+      return result;
     } catch (error: any) {
-      this.logger.error(`Failed to analyze news: ${error.message}`, error.stack);
+      this.logger.error(`新闻分析失败 [${title.substring(0, 50)}...]: ${error.message}`);
+      this.logger.debug(`错误详情: ${error.stack || error.toString()}`);
+      this.logger.warn(`使用默认分析降级策略处理: ${title.substring(0, 50)}...`);
       return this.getDefaultAnalysis(title, content, sourceCategory);
     }
   }
@@ -132,6 +137,8 @@ CRITICAL: Your response must start with { and end with }. Do NOT wrap in markdow
 
     for (let attempt = 1; attempt <= retries; attempt++) {
       try {
+        this.logger.debug(`GLM API 调用开始 (第 ${attempt}/${retries} 次尝试)`);
+
         const response = await fetch(this.glmApiUrl, {
           method: 'POST',
           headers: {
@@ -157,31 +164,36 @@ CRITICAL: Your response must start with { and end with }. Do NOT wrap in markdow
 
         if (!response.ok) {
           const errorText = await response.text();
-          throw new Error(`GLM API error (${response.status}): ${errorText}`);
+          this.logger.error(`GLM API 返回错误状态码 ${response.status}: ${errorText.substring(0, 200)}`);
+          throw new Error(`GLM API 错误 (状态码 ${response.status}): ${errorText.substring(0, 100)}`);
         }
 
         const data: any = await response.json();
 
         if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-          throw new Error('Invalid GLM API response format');
+          this.logger.error(`GLM API 响应格式无效: ${JSON.stringify(data).substring(0, 200)}`);
+          throw new Error('GLM API 响应格式无效');
         }
 
+        this.logger.debug(`GLM API 调用成功 (第 ${attempt} 次尝试)`);
         return data.choices[0].message.content;
       } catch (error: any) {
         lastError = error;
         this.logger.warn(
-          `GLM API call failed (attempt ${attempt}/${retries}): ${error.message}`
+          `GLM API 调用失败 (第 ${attempt}/${retries} 次尝试): ${error.message}`
         );
 
         if (attempt < retries) {
           // 指数退避：等待 1s, 2s, 4s...
           const delay = Math.pow(2, attempt - 1) * 1000;
+          this.logger.debug(`等待 ${delay}ms 后重试...`);
           await new Promise(resolve => setTimeout(resolve, delay));
         }
       }
     }
 
-    throw lastError || new Error('GLM API call failed after retries');
+    this.logger.error(`GLM API 调用失败，已重试 ${retries} 次: ${lastError?.message || '未知错误'}`);
+    throw lastError || new Error('GLM API 调用失败，已达到最大重试次数');
   }
 
   /**

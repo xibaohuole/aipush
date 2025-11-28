@@ -48,7 +48,7 @@ export class NewsScraperService {
 
     this.logger.log(`Parsed ${parsedItems.length} news items from RSS feeds`);
 
-    // 处理每个新闻条目（并发处理，限制并发数为 5）
+    // 处理每个新闻条目（并发处理，限制并发数以避免GLM API限流）
     const stats = {
       total: parsedItems.length,
       new: 0,
@@ -56,14 +56,17 @@ export class NewsScraperService {
       failed: 0,
     };
 
-    // 创建并发限制器（同时最多处理 5 条新闻）
-    const limit = pLimit(5);
+    // 创建并发限制器（同时最多处理 2 条新闻，避免GLM API限流）
+    const limit = pLimit(2);
+
+    this.logger.log(`开始处理 ${parsedItems.length} 条新闻，并发数: 2`);
 
     // 并发处理所有新闻条目
     const results = await Promise.allSettled(
-      parsedItems.map(item =>
+      parsedItems.map((item, index) =>
         limit(async () => {
           const source = sources.find(s => s.name === item.source);
+          this.logger.debug(`[${index + 1}/${parsedItems.length}] 处理新闻: ${item.title.substring(0, 50)}...`);
           return this.processNewsItem(item, source);
         })
       )
@@ -75,10 +78,11 @@ export class NewsScraperService {
         if (result.value === 'new') stats.new++;
         else if (result.value === 'duplicate') stats.duplicate++;
       } else {
+        const errorMsg = result.reason?.message || result.reason?.toString() || '未知错误';
         this.logger.error(
-          `Failed to process news item: ${parsedItems[index].title}`,
-          result.reason
+          `处理新闻失败 [${index + 1}/${parsedItems.length}]: ${parsedItems[index].title.substring(0, 50)}...`
         );
+        this.logger.error(`  错误原因: ${errorMsg}`);
         stats.failed++;
       }
     });
@@ -97,51 +101,73 @@ export class NewsScraperService {
     item: ParsedNewsItem,
     source?: NewsSource
   ): Promise<'new' | 'duplicate' | 'updated'> {
-    // 检查是否已存在（基于 URL，排除已删除的）
-    const existing = await this.prisma.news.findFirst({
-      where: {
-        sourceUrl: item.link,
-        deletedAt: null, // 只检查未删除的新闻
-      },
-    });
+    try {
+      // 检查是否已存在（基于 URL，排除已删除的）
+      const existing = await this.prisma.news.findFirst({
+        where: {
+          sourceUrl: item.link,
+          deletedAt: null, // 只检查未删除的新闻
+        },
+      });
 
-    if (existing) {
-      this.logger.debug(`Duplicate news item: ${item.title}`);
-      return 'duplicate';
+      if (existing) {
+        this.logger.debug(`跳过重复新闻: ${item.title.substring(0, 50)}...`);
+        return 'duplicate';
+      }
+
+      // 使用 AI 分析新闻
+      this.logger.debug(`开始AI分析: ${item.title.substring(0, 50)}...`);
+      const analysis = await this.aiAnalyzer.analyzeNews(
+        item.title,
+        item.content,
+        source?.category
+      );
+
+      // 存储到数据库
+      this.logger.debug(`保存新闻到数据库: ${item.title.substring(0, 50)}...`);
+      await this.prisma.news.create({
+        data: {
+          title: item.title,
+          titleCn: analysis.titleCn || null,
+          summary: analysis.summary,
+          summaryCn: analysis.summaryCn || null,
+          whyItMatters: analysis.whyItMatters || null,
+          whyItMattersCn: analysis.whyItMattersCn || null,
+          source: item.source || null,
+          sourceUrl: item.link,
+          category: analysis.category as any,
+          region: analysis.region as any,
+          impactScore: analysis.impactScore,
+          publishedAt: item.publishedAt,
+          fetchedAt: new Date(),
+          isCustom: false,
+          tags: analysis.tags,
+          isApproved: true, // 自动批准 RSS 新闻
+        },
+      });
+
+      this.logger.log(`✓ 成功保存新闻: ${item.title.substring(0, 50)}... (中文标题: ${analysis.titleCn ? '√' : '×'})`);
+
+      return 'new';
+    } catch (error: any) {
+      // 检查是否是数据库唯一约束冲突
+      if (error.code === 'P2002' || error.message?.includes('Unique constraint')) {
+        this.logger.warn(`数据库唯一约束冲突，新闻已存在: ${item.title.substring(0, 50)}...`);
+        return 'duplicate';
+      }
+
+      // 记录详细错误信息
+      this.logger.error(`处理新闻条目失败: ${item.title.substring(0, 50)}...`);
+      this.logger.error(`  来源: ${item.source}`);
+      this.logger.error(`  URL: ${item.link}`);
+      this.logger.error(`  错误: ${error.message}`);
+      if (error.stack) {
+        this.logger.debug(`  堆栈: ${error.stack}`);
+      }
+
+      // 重新抛出错误，让上层统计
+      throw error;
     }
-
-    // 使用 AI 分析新闻
-    const analysis = await this.aiAnalyzer.analyzeNews(
-      item.title,
-      item.content,
-      source?.category
-    );
-
-    // 存储到数据库
-    await this.prisma.news.create({
-      data: {
-        title: item.title,
-        titleCn: analysis.titleCn || null,
-        summary: analysis.summary,
-        summaryCn: analysis.summaryCn || null,
-        whyItMatters: analysis.whyItMatters || null,
-        whyItMattersCn: analysis.whyItMattersCn || null,
-        source: item.source || null,
-        sourceUrl: item.link,
-        category: analysis.category as any,
-        region: analysis.region as any,
-        impactScore: analysis.impactScore,
-        publishedAt: item.publishedAt,
-        fetchedAt: new Date(),
-        isCustom: false,
-        tags: analysis.tags,
-        isApproved: true, // 自动批准 RSS 新闻
-      },
-    });
-
-    this.logger.debug(`Saved new news item: ${item.title}`);
-
-    return 'new';
   }
 
   /**
