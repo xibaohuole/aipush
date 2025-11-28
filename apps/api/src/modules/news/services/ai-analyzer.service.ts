@@ -276,6 +276,10 @@ CRITICAL: Your response must start with { and end with }. Do NOT wrap in markdow
       summary: content.substring(0, 200) + '...',
       whyItMatters: '',
       tags: this.extractSimpleTags(title),
+      // 中文翻译字段（默认为空）
+      titleCn: '',
+      summaryCn: '',
+      whyItMattersCn: '',
     };
   }
 
