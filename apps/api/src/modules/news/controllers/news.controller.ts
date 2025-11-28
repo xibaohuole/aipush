@@ -83,8 +83,11 @@ export class NewsController {
         select: {
           id: true,
           title: true,
+          titleCn: true,
           summary: true,
+          summaryCn: true,
           whyItMatters: true,
+          whyItMattersCn: true,
           source: true,
           sourceUrl: true,
           category: true,
@@ -226,7 +229,11 @@ export class NewsController {
       select: {
         id: true,
         title: true,
+        titleCn: true,
         summary: true,
+        summaryCn: true,
+        whyItMatters: true,
+        whyItMattersCn: true,
         source: true,
         category: true,
         region: true,

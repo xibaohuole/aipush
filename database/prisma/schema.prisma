@@ -179,8 +179,11 @@ model UserPreferences {
 model News {
   id             String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   title          String        @db.VarChar(255)
+  titleCn        String?       @map("title_cn") @db.VarChar(255)
   summary        String
+  summaryCn      String?       @map("summary_cn")
   whyItMatters   String?       @map("why_it_matters")
+  whyItMattersCn String?       @map("why_it_matters_cn")
   source         String?       @db.VarChar(100)
   sourceUrl      String        @unique @map("source_url")
   category       NewsCategory
