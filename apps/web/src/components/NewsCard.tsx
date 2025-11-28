@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { Bookmark, Share2, Zap, Languages, RefreshCw, Search } from 'lucide-react';
+import React from 'react';
+import { Bookmark, Share2, Zap, Search } from 'lucide-react';
 import { Badge } from '@aipush/ui';
 import { useTranslation } from '@aipush/i18n';
 import { NewsItem, ViewMode } from '../types';
-import { translateToChinese } from '../services/geminiService';
 
 interface NewsCardProps {
   item: NewsItem;
@@ -24,25 +23,6 @@ const NewsCard: React.FC<NewsCardProps> = ({
   globalTranslateEnabled = false,
 }) => {
   const { t } = useTranslation();
-  const [localTranslateOverride, setLocalTranslateOverride] = useState<boolean | null>(null);
-  const [isTranslating, setIsTranslating] = useState(false);
-  const [translatedContent, setTranslatedContent] = useState<{
-    translatedTitle: string;
-    translatedSummary: string;
-  } | null>(null);
-
-  // 实际的翻译状态：优先使用本地覆盖，否则使用全局设置
-  const isTranslated = localTranslateOverride !== null ? localTranslateOverride : globalTranslateEnabled;
-
-  // 当全局翻译开启且有预生成的翻译时，自动加载翻译内容
-  useEffect(() => {
-    if (globalTranslateEnabled && !translatedContent && item.titleCn && item.summaryCn) {
-      setTranslatedContent({
-        translatedTitle: item.titleCn,
-        translatedSummary: item.summaryCn
-      });
-    }
-  }, [globalTranslateEnabled, item.titleCn, item.summaryCn, translatedContent]);
 
   const impactColor =
     item.impact >= 90
@@ -53,44 +33,15 @@ const NewsCard: React.FC<NewsCardProps> = ({
       ? 'info'
       : 'default';
 
-  const handleTranslate = async () => {
-    if (isTranslated) {
-      // 切换回原文：设置本地覆盖为false
-      setLocalTranslateOverride(false);
-      return;
-    }
+  // 默认显示中文，如果没有中文则显示英文
+  // 当全局翻译开启时，强制显示中文（如果有的话）
+  const displayTitle = globalTranslateEnabled
+    ? (item.titleCn || item.title)  // 全局翻译：优先中文，没有则英文
+    : (item.titleCn || item.title); // 默认：也优先显示中文
 
-    // 准备翻译内容（优先使用预生成的）
-    if (!translatedContent) {
-      if (item.titleCn && item.summaryCn) {
-        // 使用预生成的翻译
-        setTranslatedContent({
-          translatedTitle: item.titleCn,
-          translatedSummary: item.summaryCn
-        });
-      } else {
-        // 调用API翻译
-        setIsTranslating(true);
-        try {
-          const translatedTitle = await translateToChinese(item.title);
-          const translatedSummary = await translateToChinese(item.summary);
-          setTranslatedContent({ translatedTitle, translatedSummary });
-        } catch (error) {
-          console.error('Translation failed:', error);
-          setIsTranslating(false);
-          return;
-        } finally {
-          setIsTranslating(false);
-        }
-      }
-    }
-
-    // 设置本地覆盖为true（显示翻译）
-    setLocalTranslateOverride(true);
-  };
-
-  const displayTitle = isTranslated && translatedContent ? translatedContent.translatedTitle : item.title;
-  const displaySummary = isTranslated && translatedContent ? translatedContent.translatedSummary : item.summary;
+  const displaySummary = globalTranslateEnabled
+    ? (item.summaryCn || item.summary) // 全局翻译：优先中文，没有则英文
+    : (item.summaryCn || item.summary); // 默认：也优先显示中文
 
   // Search engine URLs
   const generateSearchUrl = (engine: 'google' | 'baidu' | 'bing', query: string) => {
@@ -130,16 +81,7 @@ const NewsCard: React.FC<NewsCardProps> = ({
                 {new Date(item.timestamp).toLocaleTimeString()}
               </span>
             </div>
-            <h3 className="text-lg font-semibold text-white mb-2">
-              {isTranslating ? (
-                <div className="flex items-center gap-2">
-                  <RefreshCw className="w-4 h-4 animate-spin text-cyan-400" />
-                  Translating...
-                </div>
-              ) : (
-                displayTitle
-              )}
-            </h3>
+            <h3 className="text-lg font-semibold text-white mb-2">{displayTitle}</h3>
             <p className="text-sm text-gray-300 line-clamp-2 mb-2">{displaySummary}</p>
             <div className="flex flex-wrap items-center gap-3 text-xs">
               <span className="text-gray-400">Source: {item.source}</span>
@@ -154,28 +96,9 @@ const NewsCard: React.FC<NewsCardProps> = ({
                   {item.url}
                 </a>
               )}
-              {isTranslated && (
-                <span className="text-green-400 font-medium">已翻译 (Chinese)</span>
-              )}
             </div>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
-            <button
-              onClick={handleTranslate}
-              disabled={isTranslating}
-              className={`p-2 rounded-lg transition ${
-                isTranslated
-                  ? 'bg-green-600/20 text-green-400 hover:bg-green-600/30'
-                  : 'bg-purple-600/20 hover:bg-purple-600/30 text-purple-400'
-              } ${isTranslating ? 'opacity-50 cursor-not-allowed' : ''}`}
-              title={isTranslated ? 'Show original (English)' : 'Translate to Chinese'}
-            >
-              {isTranslating ? (
-                <RefreshCw className="w-4 h-4 animate-spin" />
-              ) : (
-                <Languages className="w-4 h-4" />
-              )}
-            </button>
             <button
               onClick={() => onAsk(item)}
               className="p-2 rounded-lg bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-400 transition"
@@ -248,16 +171,7 @@ const NewsCard: React.FC<NewsCardProps> = ({
         </span>
       </div>
 
-      <h3 className="text-xl font-bold text-white mb-3 leading-tight">
-        {isTranslating ? (
-          <div className="flex items-center gap-2">
-            <RefreshCw className="w-5 h-5 animate-spin text-cyan-400" />
-            Translating...
-          </div>
-        ) : (
-          displayTitle
-        )}
-      </h3>
+      <h3 className="text-xl font-bold text-white mb-3 leading-tight">{displayTitle}</h3>
       <p className="text-sm text-gray-300 mb-4 line-clamp-3">{displaySummary}</p>
 
       <div className="flex items-start justify-between pt-4 border-t border-white/10">
@@ -274,27 +188,8 @@ const NewsCard: React.FC<NewsCardProps> = ({
               {item.url}
             </a>
           )}
-          {isTranslated && (
-            <div className="text-xs text-green-400 font-medium mt-1">已翻译 (Chinese)</div>
-          )}
         </div>
         <div className="flex items-center gap-2 ml-4">
-          <button
-            onClick={handleTranslate}
-            disabled={isTranslating}
-            className={`p-2 rounded-lg transition ${
-              isTranslated
-                ? 'bg-green-600/20 text-green-400 hover:bg-green-600/30'
-                : 'bg-purple-600/20 hover:bg-purple-600/30 text-purple-400'
-            } ${isTranslating ? 'opacity-50 cursor-not-allowed' : ''}`}
-            title={isTranslated ? 'Show original (English)' : 'Translate to Chinese'}
-          >
-            {isTranslating ? (
-              <RefreshCw className="w-4 h-4 animate-spin" />
-            ) : (
-              <Languages className="w-4 h-4" />
-            )}
-          </button>
           <button
             onClick={() => onAsk(item)}
             className="p-2 rounded-lg bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-400 transition"
