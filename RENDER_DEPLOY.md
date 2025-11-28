@@ -1,6 +1,6 @@
 # 🚀 Render 部署指南（完全免费）
 
-Render 提供永久免费层，无需信用卡，非常适合个人项目。
+- [ ]
 
 ## ✨ Render 优势
 
@@ -82,6 +82,7 @@ Render 提供永久免费层，无需信用卡，非常适合个人项目。
    ```
 
    **如何从 Redis URL 提取 REDIS_HOST**:
+
    ```
    Redis Internal URL: redis://red-xxx:6379
    REDIS_HOST: red-xxx.oregon-postgres.render.com (查看 Redis 详情页)
@@ -108,6 +109,7 @@ Render 提供永久免费层，无需信用卡，非常适合个人项目。
    ```
 
 或者使用本地命令（设置 DATABASE_URL 环境变量）：
+
 ```bash
 # Windows
 set DATABASE_URL=<你的Render数据库URL>
@@ -141,6 +143,7 @@ DATABASE_URL=<你的Render数据库URL> pnpm --filter @aipush/api prisma migrate
 ### 1. 获取后端 URL
 
 部署完成后，你会得到类似这样的 URL：
+
 ```
 https://aipush-backend.onrender.com
 ```
@@ -155,6 +158,7 @@ https://aipush-backend.onrender.com
 ### 3. 更新 CORS
 
 回到 Render Dashboard，更新 `CORS_ORIGIN` 环境变量：
+
 ```
 CORS_ORIGIN=https://你的github用户名.github.io
 ```
@@ -218,7 +222,7 @@ name: Keep Render Service Alive
 
 on:
   schedule:
-    - cron: '*/10 * * * *'  # 每 10 分钟
+    - cron: "*/10 * * * *" # 每 10 分钟
   workflow_dispatch:
 
 jobs:
@@ -234,11 +238,11 @@ jobs:
 
 ## 💰 成本对比
 
-| 平台 | 费用 | 优势 | 劣势 |
-|------|------|------|------|
-| **Render** | 完全免费 | 无需信用卡，永久免费 | 服务会休眠，启动慢 |
-| **Railway** | $5/月免费额度 | 快速，不休眠 | 需要信用卡验证 |
-| **Vercel** | 免费 | 极快，CDN | 不支持长连接，Serverless 限制 |
+| 平台        | 费用          | 优势                 | 劣势                          |
+| ----------- | ------------- | -------------------- | ----------------------------- |
+| **Render**  | 完全免费      | 无需信用卡，永久免费 | 服务会休眠，启动慢            |
+| **Railway** | $5/月免费额度 | 快速，不休眠         | 需要信用卡验证                |
+| **Vercel**  | 免费          | 极快，CDN            | 不支持长连接，Serverless 限制 |
 
 ---
 
@@ -253,6 +257,7 @@ jobs:
 ### 性能监控
 
 Render 提供：
+
 - CPU 使用率
 - 内存使用率
 - 请求延迟
@@ -265,6 +270,7 @@ Render 提供：
 ### Q: 部署失败，显示构建错误？
 
 **A**: 检查构建日志，常见原因：
+
 - pnpm 未安装：确保 Build Command 包含 `npm install -g pnpm`
 - 依赖安装失败：检查 `package.json` 是否正确
 - 内存不足：Render 免费层有 512MB 限制
@@ -272,6 +278,7 @@ Render 提供：
 ### Q: 数据库连接失败？
 
 **A**:
+
 1. 确认 `DATABASE_URL` 使用的是 **Internal Database URL**（不是 External）
 2. 确保数据库和 Web Service 在同一区域
 3. 运行 Prisma 迁移：`npx prisma migrate deploy`
@@ -279,6 +286,7 @@ Render 提供：
 ### Q: Redis 连接失败？
 
 **A**:
+
 1. 使用 **Internal Redis URL**
 2. 正确提取 `REDIS_HOST` 和 `REDIS_PORT`
 3. 检查环境变量是否正确设置
@@ -286,6 +294,7 @@ Render 提供：
 ### Q: CORS 错误？
 
 **A**:
+
 ```bash
 # 确保 CORS_ORIGIN 设置正确
 CORS_ORIGIN=https://你的github用户名.github.io
@@ -295,6 +304,7 @@ CORS_ORIGIN=https://你的github用户名.github.io
 ### Q: 服务响应很慢？
 
 **A**: Render 免费服务会在 15 分钟不活跃后休眠。解决方法：
+
 - 使用 UptimeRobot 保持活跃
 - 或接受首次访问需要等待 30 秒的事实
 - 或升级到付费计划（$7/月）

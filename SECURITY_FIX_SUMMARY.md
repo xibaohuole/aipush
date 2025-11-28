@@ -9,35 +9,46 @@ Your API keys were exposed in the frontend code, which led to them being leaked 
 ## What Was Fixed
 
 ### 1. Removed Hardcoded API Keys from Frontend
+
 **File**: `apps/web/src/services/geminiService.ts`
+
 - ❌ **BEFORE**: API key was hardcoded: `const API_KEY = '1c1aa0b4b71f43518dd7d03ba933bd3c.nD3WVYmgqa8thszj'`
 - ✅ **AFTER**: Frontend now calls the backend API securely (no API keys in frontend)
 
 ### 2. Removed API Key Injection from Vite Configs
+
 **Files**:
+
 - `vite.config.ts`
 - `apps/web/vite.config.ts`
-
 - ❌ **BEFORE**: Vite was injecting API keys into the frontend bundle via `define` configuration
 - ✅ **AFTER**: Only non-sensitive configuration (backend API URL) is exposed
 
 ### 3. Created Secure Backend Endpoint
+
 **File**: `apps/api/src/modules/news/controllers/news.controller.ts`
+
 - ✅ **NEW**: Added `/api/v1/news/ai/generate` endpoint
 - ✅ Backend securely calls AI APIs using keys stored server-side only
 
 ### 4. Updated Frontend to Use Backend
+
 **File**: `apps/web/src/services/geminiService.ts`
+
 - ✅ Frontend now makes requests to backend API instead of calling AI services directly
 - ✅ All AI API keys are now handled securely on the backend
 
 ### 5. Removed Leaked Keys from .env
+
 **File**: `.env`
+
 - ❌ **REMOVED**: Old leaked API key
 - ⚠️ **TODO**: You need to get a new API key (see below)
 
 ### 6. Updated GitHub Actions
+
 **File**: `.github/workflows/deploy.yml`
+
 - ✅ Removed `VITE_GLM_API_KEY` from build environment
 - ✅ Only `VITE_API_URL` is passed to frontend builds
 
@@ -76,6 +87,7 @@ Make sure the backend is running and note its URL (e.g., `https://your-backend.v
 ### Step 4: Update Frontend Configuration
 
 1. **For Local Development**: Update `.env` or `apps/web/.env`:
+
    ```env
    VITE_API_URL=http://localhost:4000/api/v1
    ```
@@ -88,12 +100,14 @@ Make sure the backend is running and note its URL (e.g., `https://your-backend.v
 ### Step 5: Test Locally
 
 1. Start the backend:
+
    ```bash
    cd apps/api
    pnpm dev
    ```
 
 2. In a new terminal, start the frontend:
+
    ```bash
    cd apps/web
    pnpm dev
@@ -104,6 +118,7 @@ Make sure the backend is running and note its URL (e.g., `https://your-backend.v
 ### Step 6: Deploy
 
 1. **Commit your changes** (the API key is no longer in the code):
+
    ```bash
    git add .
    git commit -m "security: Fix API key leak - move all AI calls to backend"
@@ -118,6 +133,7 @@ Make sure the backend is running and note its URL (e.g., `https://your-backend.v
 ## 🔒 Security Best Practices Going Forward
 
 ### ✅ DO:
+
 - Store ALL API keys in backend `.env` files only
 - Never commit `.env` files to Git
 - Use backend endpoints for all external API calls
@@ -125,6 +141,7 @@ Make sure the backend is running and note its URL (e.g., `https://your-backend.v
 - Monitor API usage for unusual activity
 
 ### ❌ DON'T:
+
 - Never hardcode API keys in source code
 - Never put API keys in frontend code (including environment variables that get bundled)
 - Never commit sensitive credentials to Git
