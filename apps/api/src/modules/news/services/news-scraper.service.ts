@@ -120,8 +120,11 @@ export class NewsScraperService {
     await this.prisma.news.create({
       data: {
         title: item.title,
+        titleCn: analysis.titleCn || null,
         summary: analysis.summary,
+        summaryCn: analysis.summaryCn || null,
         whyItMatters: analysis.whyItMatters || null,
+        whyItMattersCn: analysis.whyItMattersCn || null,
         source: item.source || null,
         sourceUrl: item.link,
         category: analysis.category as any,

@@ -11,6 +11,7 @@ interface NewsAnalysisResult {
   whyItMatters: string;
   tags: string[];
   // 中文翻译字段
+  titleCn?: string;
   summaryCn?: string;
   whyItMattersCn?: string;
 }
@@ -116,6 +117,7 @@ Required JSON structure (respond with ONLY this, no markdown, no code blocks, no
   "summaryCn": "<2-3句中文摘要>",
   "whyItMatters": "<1-2 sentences explaining significance in English>",
   "whyItMattersCn": "<1-2句中文解释其重要性>",
+  "titleCn": "<标题的中文翻译>",
   "tags": ["<tag1>", "<tag2>", "<tag3>"]
 }
 
@@ -222,6 +224,7 @@ CRITICAL: Your response must start with { and end with }. Do NOT wrap in markdow
         whyItMatters: parsed.whyItMatters || '',
         tags: Array.isArray(parsed.tags) ? parsed.tags.slice(0, 5) : [],
         // 中文翻译字段
+        titleCn: parsed.titleCn || '',
         summaryCn: parsed.summaryCn || '',
         whyItMattersCn: parsed.whyItMattersCn || '',
       };
