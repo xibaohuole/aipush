@@ -53,9 +53,10 @@ export class AIAnalyzerService implements OnModuleInit {
     this.logger.log('Starting AI news cache warmup...');
 
     try {
-      // 生成今天的新闻并缓存
-      const today = new Date().toISOString().split('T')[0];
-      const cacheKey = `ai-news:${today}:count-8`;
+      // 生成当前小时的新闻并缓存
+      const now = new Date();
+      const dateHour = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}`;
+      const cacheKey = `ai-news:${dateHour}:count-8`;
 
       // 检查缓存是否已存在
       const existingCache = await this.cacheStrategy.get(cacheKey);
@@ -292,14 +293,15 @@ CRITICAL: Your response must start with { and end with }. Do NOT wrap in markdow
       return [];
     }
 
-    // 生成缓存键（基于日期和数量）
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-    const cacheKey = `ai-news:${today}:count-${count}`;
+    // 生成缓存键（基于日期、小时和数量）- 每小时更新一次
+    const now = new Date();
+    const dateHour = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}`;
+    const cacheKey = `ai-news:${dateHour}:count-${count}`;
 
     // 尝试从智能缓存获取（支持降级到内存缓存）
     const cachedNews = await this.cacheStrategy.get<any[]>(cacheKey);
     if (cachedNews) {
-      this.logger.log(`Returning cached news for ${today} (${cachedNews.length} items)`);
+      this.logger.log(`Returning cached news for ${dateHour} (${cachedNews.length} items)`);
       return cachedNews;
     }
 
@@ -307,9 +309,9 @@ CRITICAL: Your response must start with { and end with }. Do NOT wrap in markdow
 
     const newsItems = await this.generateNewsInternal(count);
 
-    // 使用智能缓存策略存储（支持双写到内存缓存）
-    await this.cacheStrategy.set(cacheKey, newsItems, 1800);
-    this.logger.log(`Cached ${newsItems.length} news items for ${today}`);
+    // 使用更短的缓存时间（30分钟），确保用户能更快看到新内容
+    await this.cacheStrategy.set(cacheKey, newsItems, 1800); // 30分钟
+    this.logger.log(`Cached ${newsItems.length} news items for ${dateHour}`);
 
     return newsItems;
   }
