@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Modal, Button } from '@aipush/ui';
 import { useTranslation } from '@aipush/i18n';
 import Sidebar from './components/Sidebar';
@@ -8,7 +8,6 @@ import Settings from './components/Settings';
 import TrendingList from './components/TrendingList';
 import AddNewsModal from './components/AddNewsModal';
 import DashboardStats from './components/DashboardStats';
-import Pagination from './components/Pagination';
 import { ViewState, NewsItem, DailySummary, NewsCategory, Region, ViewMode } from './types';
 import { fetchRealtimeNews, generateDailyBriefing, askAI } from './services/geminiService';
 import { fetchNewsFromAPI } from './services/newsService';
@@ -44,11 +43,12 @@ const App: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
 
-  // 分页状态
+  // 无限滚动状态
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalItems, setTotalItems] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const itemsPerPage = 20;
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
   // Filters & View Settings
   const [selectedCategory, setSelectedCategory] = useState<NewsCategory | 'All'>('All');
@@ -100,15 +100,18 @@ const App: React.FC = () => {
     return () => clearInterval(timer);
   }, []);
 
+  // 加载初始数据
   useEffect(() => {
     const loadData = async () => {
       setIsProcessing(true);
+      setCurrentPage(1);
+      setNewsItems([]);
+      setHasMore(true);
 
       try {
-        // 优先从后端 API 获取数据（带分页）
-        console.log(`🌐 Fetching news from backend API (Page ${currentPage})...`);
+        console.log('🌐 Fetching initial news from backend API...');
         const response = await fetchNewsFromAPI({
-          page: currentPage,
+          page: 1,
           limit: itemsPerPage,
           category: selectedCategory !== 'All' ? selectedCategory : undefined,
           region: selectedRegion !== 'All' ? selectedRegion : undefined,
@@ -116,27 +119,25 @@ const App: React.FC = () => {
         });
 
         setNewsItems(response.items);
-        setTotalPages(response.pagination.totalPages);
-        setTotalItems(response.pagination.total);
+        setHasMore(response.pagination.page < response.pagination.totalPages);
         console.log('✅ Successfully loaded news from API');
       } catch (apiError) {
         console.warn('⚠️ API failed, falling back to GLM direct call:', apiError);
 
-        // 如果后端 API 失败，降级到直接调用 GLM
         try {
           const items = await fetchRealtimeNews();
           setNewsItems(items);
+          setHasMore(false);
           console.log('✅ Successfully loaded news from GLM fallback');
         } catch (glmError) {
           console.error('❌ Both API and GLM failed:', glmError);
-          // 保留空数组，让用户看到"无新闻"提示
         }
       } finally {
         setIsProcessing(false);
       }
     };
     loadData();
-  }, [currentPage, selectedCategory, selectedRegion, searchQuery]);
+  }, [selectedCategory, selectedRegion, searchQuery]);
 
   // Save bookmarks whenever they change
   useEffect(() => {
@@ -174,14 +175,67 @@ const App: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleRefresh = async () => {
-    setIsProcessing(true);
+  // 加载更多数据
+  const loadMore = useCallback(async () => {
+    if (isLoadingMore || !hasMore || isProcessing) return;
+
+    setIsLoadingMore(true);
+    const nextPage = currentPage + 1;
 
     try {
-      // 刷新当前页
+      console.log(`📄 Loading more news (Page ${nextPage})...`);
+      const response = await fetchNewsFromAPI({
+        page: nextPage,
+        limit: itemsPerPage,
+        category: selectedCategory !== 'All' ? selectedCategory : undefined,
+        region: selectedRegion !== 'All' ? selectedRegion : undefined,
+        search: searchQuery || undefined,
+      });
+
+      setNewsItems(prev => [...prev, ...response.items]);
+      setCurrentPage(nextPage);
+      setHasMore(response.pagination.page < response.pagination.totalPages);
+      console.log('✅ More news loaded');
+    } catch (error) {
+      console.error('❌ Failed to load more:', error);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [currentPage, hasMore, isLoadingMore, isProcessing, selectedCategory, selectedRegion, searchQuery]);
+
+  // 无限滚动监听
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !isLoadingMore) {
+          loadMore();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    const currentRef = loadMoreRef.current;
+    if (currentRef) {
+      observer.observe(currentRef);
+    }
+
+    return () => {
+      if (currentRef) {
+        observer.unobserve(currentRef);
+      }
+    };
+  }, [hasMore, isLoadingMore, loadMore]);
+
+  const handleRefresh = async () => {
+    setIsProcessing(true);
+    setCurrentPage(1);
+    setNewsItems([]);
+    setHasMore(true);
+
+    try {
       console.log('🔄 Refreshing news from backend API...');
       const response = await fetchNewsFromAPI({
-        page: currentPage,
+        page: 1,
         limit: itemsPerPage,
         category: selectedCategory !== 'All' ? selectedCategory : undefined,
         region: selectedRegion !== 'All' ? selectedRegion : undefined,
@@ -189,30 +243,23 @@ const App: React.FC = () => {
       });
 
       setNewsItems(response.items);
-      setTotalPages(response.pagination.totalPages);
-      setTotalItems(response.pagination.total);
+      setHasMore(response.pagination.page < response.pagination.totalPages);
       console.log('✅ News refreshed from API');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (apiError) {
       console.warn('⚠️ API refresh failed, falling back to GLM:', apiError);
 
-      // 降级到 GLM
       try {
         const items = await fetchRealtimeNews();
         setNewsItems(items);
+        setHasMore(false);
         console.log('✅ News refreshed from GLM fallback');
       } catch (glmError) {
         console.error('❌ Refresh failed:', glmError);
-        // 保持当前数据不变
       }
     } finally {
       setIsProcessing(false);
     }
-  };
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-    // 滚动到顶部
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleAskAI = async () => {
@@ -510,19 +557,20 @@ const App: React.FC = () => {
                   </div>
                 )}
 
-                {/* 分页组件 */}
-                {!isProcessing && newsItems.length > 0 && (
-                  <div className="mt-8 mb-6">
-                    <Pagination
-                      currentPage={currentPage}
-                      totalPages={totalPages}
-                      onPageChange={handlePageChange}
-                    />
-                    <div className="text-center mt-4 text-sm text-slate-400">
-                      Showing {newsItems.length} of {totalItems} items
+                {/* 加载更多指示器 */}
+                <div ref={loadMoreRef} className="py-8 text-center">
+                  {isLoadingMore && (
+                    <div className="flex items-center justify-center gap-2 text-cyan-400">
+                      <RefreshCw className="w-5 h-5 animate-spin" />
+                      <span>Loading more...</span>
                     </div>
-                  </div>
-                )}
+                  )}
+                  {!hasMore && newsItems.length > 0 && (
+                    <div className="text-slate-500 text-sm">
+                      — No more news to load —
+                    </div>
+                  )}
+                </div>
               </div>
             </>
           )}

@@ -216,4 +216,71 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   isAvailable(): boolean {
     return this.client !== null && this.isConnected;
   }
+
+  /**
+   * 添加成员到Set集合
+   */
+  async sAdd(key: string, ...members: string[]): Promise<number> {
+    if (!this.client || !this.isConnected) {
+      return 0;
+    }
+
+    try {
+      const result = await this.client.sadd(key, ...members);
+      return result;
+    } catch (error: any) {
+      this.logger.error(`Failed to add to set ${key}: ${error.message}`);
+      return 0;
+    }
+  }
+
+  /**
+   * 检查成员是否在Set集合中
+   */
+  async sIsMember(key: string, member: string): Promise<boolean> {
+    if (!this.client || !this.isConnected) {
+      return false;
+    }
+
+    try {
+      const result = await this.client.sismember(key, member);
+      return result === 1;
+    } catch (error: any) {
+      this.logger.error(`Failed to check set membership ${key}: ${error.message}`);
+      return false;
+    }
+  }
+
+  /**
+   * 获取Set集合的所有成员
+   */
+  async sMembers(key: string): Promise<string[]> {
+    if (!this.client || !this.isConnected) {
+      return [];
+    }
+
+    try {
+      return await this.client.smembers(key);
+    } catch (error: any) {
+      this.logger.error(`Failed to get set members ${key}: ${error.message}`);
+      return [];
+    }
+  }
+
+  /**
+   * 为键设置过期时间
+   */
+  async expire(key: string, seconds: number): Promise<boolean> {
+    if (!this.client || !this.isConnected) {
+      return false;
+    }
+
+    try {
+      const result = await this.client.expire(key, seconds);
+      return result === 1;
+    } catch (error: any) {
+      this.logger.error(`Failed to set expiry for ${key}: ${error.message}`);
+      return false;
+    }
+  }
 }

@@ -1,6 +1,7 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { CacheStrategyService } from '../../../common/redis/cache-strategy.service';
+import { RedisService } from '../../../common/redis/redis.service';
 
 interface NewsAnalysisResult {
   category: string;
@@ -27,6 +28,7 @@ export class AIAnalyzerService implements OnModuleInit {
   constructor(
     private configService: ConfigService,
     private cacheStrategy: CacheStrategyService,
+    private redisService: RedisService,
   ) {
     this.glmApiKey = this.configService.get<string>('glm.apiKey') || '';
   }
@@ -320,22 +322,36 @@ CRITICAL: Your response must start with { and end with }. Do NOT wrap in markdow
    * 内部新闻生成方法（不涉及缓存）
    */
   private async generateNewsInternal(count: number): Promise<any[]> {
+    const dedupeSetKey = 'ai-news:titles:dedupe';
+    const maxRetries = 3; // 最多重试3次
+    let allNewsItems: any[] = [];
 
     try {
-      const todayFormatted = new Date().toLocaleDateString('zh-CN', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      });
+      // 获取已存在的标题hash集合
+      const existingTitles = await this.redisService.sMembers(dedupeSetKey);
+      this.logger.log(`Found ${existingTitles.length} existing news titles in Redis`);
 
-      const prompt = `你是一个JSON-only API。请基于你的知识库，生成${count}条最近一周内的AI行业新闻。
+      for (let retry = 0; retry < maxRetries && allNewsItems.length < count; retry++) {
+        const remainingCount = count - allNewsItems.length;
+        // 请求稍微多一些，以防去重后不够数量
+        const requestCount = Math.min(remainingCount + 5, 30);
+
+        this.logger.log(`Generating ${requestCount} news items (attempt ${retry + 1}/${maxRetries})...`);
+
+        const todayFormatted = new Date().toLocaleDateString('zh-CN', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        });
+
+        const prompt = `你是一个JSON-only API。请基于你的知识库，生成${requestCount}条最近一周内的AI行业新闻。
 
 ## 核心要求
 - 今天是 ${todayFormatted}
 - 只提供**真实、可验证**的新闻，不要编造或推测
 - 如果不确定某件事，宁可不提及
 - 基于真实的公司发布、媒体报道或研究论文
-- 每条新闻必须有唯一的标题，避免重复
+- **每条新闻必须有完全不同的标题和内容**，严格避免任何形式的重复
 
 ## 输出格式
 返回一个纯 JSON 数组（不要用 markdown 代码块包裹），每条新闻包含以下字段：
@@ -354,39 +370,67 @@ CRITICAL: Your response must start with { and end with }. Do NOT wrap in markdow
   }
 ]`;
 
-      const response = await this.callGLM(prompt);
+        const response = await this.callGLM(prompt);
 
-      // 清理响应
-      let cleanedResponse = response.trim();
-      cleanedResponse = cleanedResponse.replace(/^```json\s*/i, '');
-      cleanedResponse = cleanedResponse.replace(/^```\s*/i, '');
-      cleanedResponse = cleanedResponse.replace(/\s*```$/i, '');
-      cleanedResponse = cleanedResponse.trim();
+        // 清理响应
+        let cleanedResponse = response.trim();
+        cleanedResponse = cleanedResponse.replace(/^```json\s*/i, '');
+        cleanedResponse = cleanedResponse.replace(/^```\s*/i, '');
+        cleanedResponse = cleanedResponse.replace(/\s*```$/i, '');
+        cleanedResponse = cleanedResponse.trim();
 
-      const newsItems = JSON.parse(cleanedResponse);
+        const newsItems = JSON.parse(cleanedResponse);
 
-      if (!Array.isArray(newsItems)) {
-        this.logger.error('GLM response is not an array');
-        return [];
+        if (!Array.isArray(newsItems)) {
+          this.logger.error('GLM response is not an array');
+          continue;
+        }
+
+        // 为每条AI新闻生成唯一的sourceUrl并去重
+        const now = new Date();
+        const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+        const hourStr = String(now.getHours()).padStart(2, '0');
+
+        for (const item of newsItems) {
+          const titleHash = this.simpleHash(item.title || item.titleCn || '');
+
+          // 检查标题hash是否已存在
+          const isDuplicate = existingTitles.includes(titleHash);
+
+          if (!isDuplicate) {
+            // 生成唯一的sourceUrl
+            if (!item.sourceUrl) {
+              item.sourceUrl = `https://ai-news-generated/${dateStr}/${hourStr}/${titleHash}-${allNewsItems.length}`;
+            }
+
+            allNewsItems.push(item);
+            existingTitles.push(titleHash);
+
+            // 添加到Redis Set用于去重（24小时过期）
+            await this.redisService.sAdd(dedupeSetKey, titleHash);
+
+            if (allNewsItems.length >= count) {
+              break;
+            }
+          } else {
+            this.logger.debug(`Skipping duplicate news: ${item.title || item.titleCn}`);
+          }
+        }
+
+        this.logger.log(`Collected ${allNewsItems.length}/${count} unique news items`);
       }
 
-      // 为每条AI新闻生成唯一的sourceUrl（如果没有的话）
-      const now = new Date();
+      // 为去重集合设置24小时过期时间
+      if (allNewsItems.length > 0) {
+        await this.redisService.expire(dedupeSetKey, 86400); // 24小时
+      }
 
-      return newsItems.map((item, index) => {
-        if (!item.sourceUrl) {
-          // 生成唯一的AI新闻URL
-          const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
-          const hourStr = String(now.getHours()).padStart(2, '0');
-          // 使用标题的hash作为ID的一部分确保唯一性
-          const titleHash = this.simpleHash(item.title || item.titleCn);
-          item.sourceUrl = `https://ai-news-generated/${dateStr}/${hourStr}/${titleHash}-${index}`;
-        }
-        return item;
-      });
+      this.logger.log(`Generated ${allNewsItems.length} unique news items after deduplication`);
+      return allNewsItems;
+
     } catch (error: any) {
       this.logger.error(`Failed to generate realtime news: ${error.message}`, error.stack);
-      return [];
+      return allNewsItems; // 返回已收集的新闻，即使出错
     }
   }
 
