@@ -144,9 +144,25 @@ export class NewsScraperService {
   }
 
   /**
-   * 清理旧新闻（超过30天）
+   * 清理旧新闻（超过N天）
+   * 如果 daysToKeep 为 -1，则删除所有新闻
    */
   async cleanOldNews(daysToKeep: number = 30): Promise<number> {
+    // 如果 daysToKeep 为 -1，删除所有新闻
+    if (daysToKeep === -1) {
+      const result = await this.prisma.news.updateMany({
+        where: {
+          deletedAt: null,
+        },
+        data: {
+          deletedAt: new Date(),
+        },
+      });
+
+      this.logger.log(`Soft-deleted all ${result.count} news items`);
+      return result.count;
+    }
+
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
 

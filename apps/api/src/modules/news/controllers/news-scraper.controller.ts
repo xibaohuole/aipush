@@ -97,4 +97,20 @@ export class NewsScraperController {
       message: `Cleaned up ${deletedCount} old news items`,
     };
   }
+
+  @Post('cleanup/all')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Delete ALL news (use with caution)' })
+  @ApiResponse({
+    status: 200,
+    description: 'All news deleted successfully',
+  })
+  async deleteAllNews() {
+    const deletedCount = await this.newsScraperService.cleanOldNews(-1);
+
+    return {
+      deletedCount,
+      message: `Deleted all ${deletedCount} news items`,
+    };
+  }
 }
