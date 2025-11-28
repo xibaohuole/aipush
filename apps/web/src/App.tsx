@@ -57,6 +57,9 @@ const App: React.FC = () => {
   const [viewMode, setViewMode] = useState<ViewMode>(() => getViewMode());
   const [searchQuery, setSearchQuery] = useState<string>('');
 
+  // 全局翻译状态
+  const [globalTranslateEnabled, setGlobalTranslateEnabled] = useState(false);
+
   // Modals & Menus
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -441,6 +444,16 @@ const App: React.FC = () => {
                     </select>
 
                     <Button
+                      onClick={() => setGlobalTranslateEnabled(!globalTranslateEnabled)}
+                      variant={globalTranslateEnabled ? "success" : "secondary"}
+                      size="sm"
+                      className={globalTranslateEnabled ? "shadow-green-500/30" : ""}
+                    >
+                      <Globe className="w-4 h-4" />
+                      {globalTranslateEnabled ? '显示原文' : '全部翻译'}
+                    </Button>
+
+                    <Button
                       onClick={handleRefresh}
                       disabled={isProcessing}
                       variant="primary"
@@ -478,6 +491,7 @@ const App: React.FC = () => {
                           targetLanguage={targetLanguage}
                           isBookmarked={bookmarkedItems.has(item.id)}
                           viewMode={viewMode}
+                          globalTranslateEnabled={globalTranslateEnabled}
                           onToggleBookmark={(id) =>
                             setBookmarkedItems((prev) => {
                               const newSet = new Set(prev);

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Bookmark, Share2, Zap, Languages, RefreshCw, Search } from 'lucide-react';
 import { Badge } from '@aipush/ui';
 import { useTranslation } from '@aipush/i18n';
@@ -12,6 +12,7 @@ interface NewsCardProps {
   viewMode: ViewMode;
   onToggleBookmark: (id: string) => void;
   onAsk: (item: NewsItem) => void;
+  globalTranslateEnabled?: boolean; // 全局翻译开关
 }
 
 const NewsCard: React.FC<NewsCardProps> = ({
@@ -20,14 +21,28 @@ const NewsCard: React.FC<NewsCardProps> = ({
   viewMode,
   onToggleBookmark,
   onAsk,
+  globalTranslateEnabled = false,
 }) => {
   const { t } = useTranslation();
-  const [isTranslated, setIsTranslated] = useState(false);
+  const [localTranslateOverride, setLocalTranslateOverride] = useState<boolean | null>(null);
   const [isTranslating, setIsTranslating] = useState(false);
   const [translatedContent, setTranslatedContent] = useState<{
     translatedTitle: string;
     translatedSummary: string;
   } | null>(null);
+
+  // 实际的翻译状态：优先使用本地覆盖，否则使用全局设置
+  const isTranslated = localTranslateOverride !== null ? localTranslateOverride : globalTranslateEnabled;
+
+  // 当全局翻译开启且有预生成的翻译时，自动加载翻译内容
+  useEffect(() => {
+    if (globalTranslateEnabled && !translatedContent && item.titleCn && item.summaryCn) {
+      setTranslatedContent({
+        translatedTitle: item.titleCn,
+        translatedSummary: item.summaryCn
+      });
+    }
+  }, [globalTranslateEnabled, item.titleCn, item.summaryCn, translatedContent]);
 
   const impactColor =
     item.impact >= 90
@@ -40,33 +55,38 @@ const NewsCard: React.FC<NewsCardProps> = ({
 
   const handleTranslate = async () => {
     if (isTranslated) {
-      // Toggle back to original
-      setIsTranslated(false);
+      // 切换回原文：设置本地覆盖为false
+      setLocalTranslateOverride(false);
       return;
     }
 
-    // 优先使用预生成的中文翻译
-    if (item.titleCn && item.summaryCn) {
-      setTranslatedContent({
-        translatedTitle: item.titleCn,
-        translatedSummary: item.summaryCn
-      });
-      setIsTranslated(true);
-      return;
+    // 准备翻译内容（优先使用预生成的）
+    if (!translatedContent) {
+      if (item.titleCn && item.summaryCn) {
+        // 使用预生成的翻译
+        setTranslatedContent({
+          translatedTitle: item.titleCn,
+          translatedSummary: item.summaryCn
+        });
+      } else {
+        // 调用API翻译
+        setIsTranslating(true);
+        try {
+          const translatedTitle = await translateToChinese(item.title);
+          const translatedSummary = await translateToChinese(item.summary);
+          setTranslatedContent({ translatedTitle, translatedSummary });
+        } catch (error) {
+          console.error('Translation failed:', error);
+          setIsTranslating(false);
+          return;
+        } finally {
+          setIsTranslating(false);
+        }
+      }
     }
 
-    // 如果没有预生成的翻译，则调用 API（向后兼容）
-    setIsTranslating(true);
-    try {
-      const translatedTitle = await translateToChinese(item.title);
-      const translatedSummary = await translateToChinese(item.summary);
-      setTranslatedContent({ translatedTitle, translatedSummary });
-      setIsTranslated(true);
-    } catch (error) {
-      console.error('Translation failed:', error);
-    } finally {
-      setIsTranslating(false);
-    }
+    // 设置本地覆盖为true（显示翻译）
+    setLocalTranslateOverride(true);
   };
 
   const displayTitle = isTranslated && translatedContent ? translatedContent.translatedTitle : item.title;
