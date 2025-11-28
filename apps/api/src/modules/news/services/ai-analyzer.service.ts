@@ -335,6 +335,7 @@ CRITICAL: Your response must start with { and end with }. Do NOT wrap in markdow
 - 只提供**真实、可验证**的新闻，不要编造或推测
 - 如果不确定某件事，宁可不提及
 - 基于真实的公司发布、媒体报道或研究论文
+- 每条新闻必须有唯一的标题，避免重复
 
 ## 输出格式
 返回一个纯 JSON 数组（不要用 markdown 代码块包裹），每条新闻包含以下字段：
@@ -348,7 +349,8 @@ CRITICAL: Your response must start with { and end with }. Do NOT wrap in markdow
     "category": "分类（从以下选择：AI, HARDWARE, RESEARCH, POLICY, BUSINESS, ETHICS, APPLICATION）",
     "region": "地区（从以下选择：NORTH_AMERICA, EUROPE, ASIA, GLOBAL）",
     "impact": 70-95的整数（基于行业影响力）,
-    "source": "具体来源（如：OpenAI官方博客、TechCrunch、arXiv、GitHub等）"
+    "source": "具体来源（如：OpenAI官方博客、TechCrunch、arXiv、GitHub等）",
+    "sourceUrl": "新闻来源URL（如果有的话，必须是真实可访问的URL）"
   }
 ]`;
 
@@ -368,10 +370,36 @@ CRITICAL: Your response must start with { and end with }. Do NOT wrap in markdow
         return [];
       }
 
-      return newsItems;
+      // 为每条AI新闻生成唯一的sourceUrl（如果没有的话）
+      const now = new Date();
+
+      return newsItems.map((item, index) => {
+        if (!item.sourceUrl) {
+          // 生成唯一的AI新闻URL
+          const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+          const hourStr = String(now.getHours()).padStart(2, '0');
+          // 使用标题的hash作为ID的一部分确保唯一性
+          const titleHash = this.simpleHash(item.title || item.titleCn);
+          item.sourceUrl = `https://ai-news-generated/${dateStr}/${hourStr}/${titleHash}-${index}`;
+        }
+        return item;
+      });
     } catch (error: any) {
       this.logger.error(`Failed to generate realtime news: ${error.message}`, error.stack);
       return [];
     }
+  }
+
+  /**
+   * 简单的字符串hash函数
+   */
+  private simpleHash(str: string): string {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    return Math.abs(hash).toString(36);
   }
 }

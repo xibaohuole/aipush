@@ -8,6 +8,7 @@ import Settings from './components/Settings';
 import TrendingList from './components/TrendingList';
 import AddNewsModal from './components/AddNewsModal';
 import DashboardStats from './components/DashboardStats';
+import Pagination from './components/Pagination';
 import { ViewState, NewsItem, DailySummary, NewsCategory, Region, ViewMode } from './types';
 import { fetchRealtimeNews, generateDailyBriefing, askAI } from './services/geminiService';
 import { fetchNewsFromAPI } from './services/newsService';
@@ -18,11 +19,6 @@ import {
   saveLanguage,
   getViewMode,
   saveViewMode,
-  getCustomNews,
-  saveCustomNews,
-  getCachedNews,
-  saveCachedNews,
-  isCacheValid,
 } from './utils/localStorage';
 import {
   Search,
@@ -48,12 +44,17 @@ const App: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
 
+  // 分页状态
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const itemsPerPage = 20;
+
   // Filters & View Settings
   const [selectedCategory, setSelectedCategory] = useState<NewsCategory | 'All'>('All');
   const [selectedRegion, _setSelectedRegion] = useState<Region | 'All'>('All');
   const [targetLanguage, setTargetLanguage] = useState<string>(() => getLanguage());
   const [viewMode, setViewMode] = useState<ViewMode>(() => getViewMode());
-  const [showBookmarksOnly, _setShowBookmarksOnly] = useState(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
 
   // Modals & Menus
@@ -98,27 +99,22 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const loadData = async () => {
-      const customItems = getCustomNews();
-
-      // Try to use cached news first
-      const cached = getCachedNews();
-      if (cached && isCacheValid()) {
-        console.log('📦 Using cached news data');
-        setNewsItems([...customItems, ...cached]);
-        return;
-      }
-
-      // Cache miss or expired - fetch fresh data
       setIsProcessing(true);
 
       try {
-        // 优先从后端 API 获取数据
-        console.log('🌐 Fetching news from backend API...');
-        const items = await fetchNewsFromAPI({ limit: 50 });
+        // 优先从后端 API 获取数据（带分页）
+        console.log(`🌐 Fetching news from backend API (Page ${currentPage})...`);
+        const response = await fetchNewsFromAPI({
+          page: currentPage,
+          limit: itemsPerPage,
+          category: selectedCategory !== 'All' ? selectedCategory : undefined,
+          region: selectedRegion !== 'All' ? selectedRegion : undefined,
+          search: searchQuery || undefined,
+        });
 
-        // Save to cache
-        saveCachedNews(items);
-        setNewsItems([...customItems, ...items]);
+        setNewsItems(response.items);
+        setTotalPages(response.pagination.totalPages);
+        setTotalItems(response.pagination.total);
         console.log('✅ Successfully loaded news from API');
       } catch (apiError) {
         console.warn('⚠️ API failed, falling back to GLM direct call:', apiError);
@@ -126,8 +122,7 @@ const App: React.FC = () => {
         // 如果后端 API 失败，降级到直接调用 GLM
         try {
           const items = await fetchRealtimeNews();
-          saveCachedNews(items);
-          setNewsItems([...customItems, ...items]);
+          setNewsItems(items);
           console.log('✅ Successfully loaded news from GLM fallback');
         } catch (glmError) {
           console.error('❌ Both API and GLM failed:', glmError);
@@ -138,7 +133,7 @@ const App: React.FC = () => {
       }
     };
     loadData();
-  }, []);
+  }, [currentPage, selectedCategory, selectedRegion, searchQuery]);
 
   // Save bookmarks whenever they change
   useEffect(() => {
@@ -178,20 +173,21 @@ const App: React.FC = () => {
 
   const handleRefresh = async () => {
     setIsProcessing(true);
-    const customItems = newsItems.filter((n) => n.isCustom);
 
     try {
-      // 优先从后端 API 刷新
+      // 刷新当前页
       console.log('🔄 Refreshing news from backend API...');
-      const items = await fetchNewsFromAPI({ limit: 50 });
+      const response = await fetchNewsFromAPI({
+        page: currentPage,
+        limit: itemsPerPage,
+        category: selectedCategory !== 'All' ? selectedCategory : undefined,
+        region: selectedRegion !== 'All' ? selectedRegion : undefined,
+        search: searchQuery || undefined,
+      });
 
-      // Update custom news in localStorage
-      saveCustomNews(customItems);
-
-      // Save fresh news to cache
-      saveCachedNews(items);
-
-      setNewsItems([...customItems, ...items]);
+      setNewsItems(response.items);
+      setTotalPages(response.pagination.totalPages);
+      setTotalItems(response.pagination.total);
       console.log('✅ News refreshed from API');
     } catch (apiError) {
       console.warn('⚠️ API refresh failed, falling back to GLM:', apiError);
@@ -199,9 +195,7 @@ const App: React.FC = () => {
       // 降级到 GLM
       try {
         const items = await fetchRealtimeNews();
-        saveCustomNews(customItems);
-        saveCachedNews(items);
-        setNewsItems([...customItems, ...items]);
+        setNewsItems(items);
         console.log('✅ News refreshed from GLM fallback');
       } catch (glmError) {
         console.error('❌ Refresh failed:', glmError);
@@ -210,6 +204,12 @@ const App: React.FC = () => {
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    // 滚动到顶部
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleAskAI = async () => {
@@ -228,19 +228,8 @@ const App: React.FC = () => {
     setAskModalOpen(true);
   };
 
-  const filteredNews = newsItems.filter((item) => {
-    const matchesCategory = selectedCategory === 'All' || item.category === selectedCategory;
-    const matchesRegion = selectedRegion === 'All' || item.region === selectedRegion;
-    const matchesBookmark = showBookmarksOnly ? bookmarkedItems.has(item.id) : true;
-
-    // Search functionality - search in title, summary, and source
-    const matchesSearch = searchQuery.trim() === '' ||
-      item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.summary.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.source.toLowerCase().includes(searchQuery.toLowerCase());
-
-    return matchesCategory && matchesRegion && matchesBookmark && matchesSearch;
-  });
+  // 过滤现在由后端处理，前端只需显示返回的新闻
+  const filteredNews = newsItems;
 
   return (
     <div className="flex min-h-screen cosmic-bg font-sans text-slate-100 relative">
@@ -504,6 +493,20 @@ const App: React.FC = () => {
                       [1, 2, 3].map((i) => (
                         <div key={i} className="glass-card rounded-xl p-5 h-64 animate-pulse"></div>
                       ))}
+                  </div>
+                )}
+
+                {/* 分页组件 */}
+                {!isProcessing && newsItems.length > 0 && (
+                  <div className="mt-8 mb-6">
+                    <Pagination
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      onPageChange={handlePageChange}
+                    />
+                    <div className="text-center mt-4 text-sm text-slate-400">
+                      Showing {newsItems.length} of {totalItems} items
+                    </div>
                   </div>
                 )}
               </div>

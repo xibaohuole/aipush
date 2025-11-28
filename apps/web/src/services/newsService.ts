@@ -2,6 +2,16 @@ import { NewsItem, NewsCategory, Region } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api/v1';
 
+export interface PaginatedNewsResponse {
+  items: NewsItem[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
 /**
  * 从后端 API 获取新闻列表
  */
@@ -11,7 +21,7 @@ export async function fetchNewsFromAPI(params?: {
   category?: string;
   region?: string;
   search?: string;
-}): Promise<NewsItem[]> {
+}): Promise<PaginatedNewsResponse> {
   try {
     const queryParams = new URLSearchParams();
 
@@ -41,7 +51,7 @@ export async function fetchNewsFromAPI(params?: {
       throw new Error('Invalid API response format');
     }
 
-    console.log(`✅ Fetched ${data.data.items.length} news items from API`);
+    console.log(`✅ Fetched ${data.data.items.length} news items from API (Page ${data.data.pagination.page}/${data.data.pagination.totalPages})`);
 
     // 映射后端枚举值到前端枚举值
     const categoryMap: Record<string, NewsCategory> = {
@@ -71,7 +81,7 @@ export async function fetchNewsFromAPI(params?: {
     };
 
     // 转换后端数据格式到前端格式
-    return data.data.items.map((item: any) => ({
+    const items = data.data.items.map((item: any) => ({
       id: item.id,
       title: item.title,
       summary: item.summary,
@@ -85,6 +95,11 @@ export async function fetchNewsFromAPI(params?: {
       tags: item.tags || [],
       whyItMatters: item.whyItMatters,
     }));
+
+    return {
+      items,
+      pagination: data.data.pagination,
+    };
   } catch (error: any) {
     console.error('❌ Error fetching news from API:', error);
     throw error;

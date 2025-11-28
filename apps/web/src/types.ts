@@ -25,7 +25,9 @@ export type ViewMode = 'CARD' | 'LIST';
 export interface NewsItem {
   id: string;
   title: string;
+  titleCn?: string;
   summary: string;
+  summaryCn?: string;
   category: NewsCategory;
   region: Region;
   impact: number;
@@ -33,6 +35,9 @@ export interface NewsItem {
   source: string;
   url?: string;
   isCustom?: boolean;
+  isTrending?: boolean;
+  tags?: string[];
+  whyItMatters?: string;
 }
 
 export interface DailySummary {

@@ -314,7 +314,7 @@ export class NewsController {
   @ApiOperation({ summary: '使用AI生成实时新闻' })
   @ApiQuery({ name: 'count', required: false, type: Number })
   async generateAINews(
-    @Query('count', new DefaultValuePipe(8), ParseIntPipe) count: number,
+    @Query('count', new DefaultValuePipe(20), ParseIntPipe) count: number,
   ) {
     try {
       const newsItems = await this.aiAnalyzer.generateRealtimeNews(count);
