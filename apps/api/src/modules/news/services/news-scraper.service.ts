@@ -97,10 +97,11 @@ export class NewsScraperService {
     item: ParsedNewsItem,
     source?: NewsSource
   ): Promise<'new' | 'duplicate' | 'updated'> {
-    // 检查是否已存在（基于 URL）
+    // 检查是否已存在（基于 URL，排除已删除的）
     const existing = await this.prisma.news.findFirst({
       where: {
         sourceUrl: item.link,
+        deletedAt: null, // 只检查未删除的新闻
       },
     });
 
