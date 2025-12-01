@@ -283,4 +283,198 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       return false;
     }
   }
+
+  /**
+   * 删除指定键
+   */
+  async del(key: string): Promise<boolean> {
+    if (!this.client || !this.isConnected) {
+      return false;
+    }
+
+    try {
+      await this.client.del(key);
+      return true;
+    } catch (error: any) {
+      this.logger.error(`Failed to delete key ${key}: ${error.message}`);
+      return false;
+    }
+  }
+
+  // ========== 监控和统计相关方法 ==========
+
+  /**
+   * 获取Redis服务器信息
+   */
+  async getInfo(section?: string): Promise<string> {
+    if (!this.client || !this.isConnected) {
+      return 'Redis is not connected';
+    }
+
+    try {
+      return section ? await this.client.info(section) : await this.client.info();
+    } catch (error: any) {
+      this.logger.error(`Failed to get Redis info: ${error.message}`);
+      return '';
+    }
+  }
+
+  /**
+   * 获取Redis统计信息（结构化）
+   */
+  async getStats(): Promise<{
+    connected: boolean;
+    memory: {
+      used: string;
+      peak: string;
+      fragmentation: number;
+    };
+    stats: {
+      totalKeys: number;
+      commandsProcessed: number;
+      connectionsReceived: number;
+    };
+    keyspace: Record<string, any>;
+  }> {
+    if (!this.client || !this.isConnected) {
+      return {
+        connected: false,
+        memory: { used: '0', peak: '0', fragmentation: 0 },
+        stats: { totalKeys: 0, commandsProcessed: 0, connectionsReceived: 0 },
+        keyspace: {},
+      };
+    }
+
+    try {
+      const info = await this.client.info();
+      const dbSize = await this.client.dbsize();
+
+      // 解析INFO输出
+      const memoryUsed = this.extractInfoValue(info, 'used_memory_human');
+      const memoryPeak = this.extractInfoValue(info, 'used_memory_peak_human');
+      const fragmentation = parseFloat(this.extractInfoValue(info, 'mem_fragmentation_ratio') || '1');
+      const commandsProcessed = parseInt(this.extractInfoValue(info, 'total_commands_processed') || '0');
+      const connectionsReceived = parseInt(this.extractInfoValue(info, 'total_connections_received') || '0');
+
+      return {
+        connected: true,
+        memory: {
+          used: memoryUsed || '0',
+          peak: memoryPeak || '0',
+          fragmentation,
+        },
+        stats: {
+          totalKeys: dbSize,
+          commandsProcessed,
+          connectionsReceived,
+        },
+        keyspace: await this.getKeyspaceStats(),
+      };
+    } catch (error: any) {
+      this.logger.error(`Failed to get Redis stats: ${error.message}`);
+      return {
+        connected: false,
+        memory: { used: '0', peak: '0', fragmentation: 0 },
+        stats: { totalKeys: 0, commandsProcessed: 0, connectionsReceived: 0 },
+        keyspace: {},
+      };
+    }
+  }
+
+  /**
+   * 获取各类缓存键的统计
+   */
+  async getKeyspaceStats(): Promise<Record<string, number>> {
+    if (!this.client || !this.isConnected) {
+      return {};
+    }
+
+    try {
+      const patterns = [
+        'ai-news:*',
+        'source-health:*',
+        'cache:*',
+        'news:*',
+      ];
+
+      const stats: Record<string, number> = {};
+
+      for (const pattern of patterns) {
+        const keys = await this.client.keys(pattern);
+        const prefix = pattern.replace(':*', '');
+        stats[prefix] = keys.length;
+      }
+
+      return stats;
+    } catch (error: any) {
+      this.logger.error(`Failed to get keyspace stats: ${error.message}`);
+      return {};
+    }
+  }
+
+  /**
+   * 从INFO输出中提取值
+   */
+  private extractInfoValue(info: string, key: string): string {
+    const regex = new RegExp(`${key}:(.+)`);
+    const match = info.match(regex);
+    return match ? match[1].trim() : '';
+  }
+
+  /**
+   * 清理过期的缓存
+   */
+  async cleanupExpiredKeys(pattern: string): Promise<number> {
+    if (!this.client || !this.isConnected) {
+      return 0;
+    }
+
+    try {
+      const keys = await this.client.keys(pattern);
+      let cleanedCount = 0;
+
+      for (const key of keys) {
+        const ttl = await this.client.ttl(key);
+        // 如果TTL为-1（永不过期但我们期望有过期时间）或-2（已过期）
+        if (ttl === -2) {
+          await this.client.del(key);
+          cleanedCount++;
+        }
+      }
+
+      if (cleanedCount > 0) {
+        this.logger.log(`Cleaned up ${cleanedCount} expired keys matching ${pattern}`);
+      }
+
+      return cleanedCount;
+    } catch (error: any) {
+      this.logger.error(`Failed to cleanup expired keys: ${error.message}`);
+      return 0;
+    }
+  }
+
+  /**
+   * 获取特定pattern的所有键及其TTL
+   */
+  async getKeysWithTTL(pattern: string, limit: number = 100): Promise<Array<{ key: string; ttl: number }>> {
+    if (!this.client || !this.isConnected) {
+      return [];
+    }
+
+    try {
+      const keys = await this.client.keys(pattern);
+      const limitedKeys = keys.slice(0, limit);
+      const results: Array<{ key: string; ttl: number }> = [];
+
+      for (const key of limitedKeys) {
+        const ttl = await this.client.ttl(key);
+        results.push({ key, ttl });
+      }
+
+      return results;
+    } catch (error: any) {
+      this.logger.error(`Failed to get keys with TTL: ${error.message}`);
+      return [];
+    }
+  }
 }

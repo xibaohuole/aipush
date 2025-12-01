@@ -5,6 +5,7 @@ import { ConfigModule } from '@nestjs/config';
 import { RSSParserService } from './services/rss-parser.service';
 import { AIAnalyzerService } from './services/ai-analyzer.service';
 import { NewsScraperService } from './services/news-scraper.service';
+import { SourceHealthService } from './services/source-health.service';
 
 // Controllers
 import { NewsScraperController } from './controllers/news-scraper.controller';
@@ -20,8 +21,9 @@ import { NewsScraperScheduler } from './schedulers/news-scraper.scheduler';
     RSSParserService,
     AIAnalyzerService,
     NewsScraperService,
+    SourceHealthService,
     NewsScraperScheduler,
   ],
-  exports: [NewsScraperService],
+  exports: [NewsScraperService, SourceHealthService],
 })
 export class NewsModule {}

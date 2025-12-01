@@ -56,10 +56,10 @@ export class NewsScraperService {
       failed: 0,
     };
 
-    // 创建并发限制器（同时最多处理 2 条新闻，避免GLM API限流）
-    const limit = pLimit(2);
+    // 创建并发限制器（同时最多处理 4 条新闻，平衡效率和API限流风险）
+    const limit = pLimit(4);
 
-    this.logger.log(`开始处理 ${parsedItems.length} 条新闻，并发数: 2`);
+    this.logger.log(`开始处理 ${parsedItems.length} 条新闻，并发数: 4`);
 
     // 并发处理所有新闻条目
     const results = await Promise.allSettled(

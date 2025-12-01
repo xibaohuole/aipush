@@ -279,20 +279,99 @@ CRITICAL: Your response must start with { and end with }. Do NOT wrap in markdow
 
   /**
    * 获取默认分析结果（当 API 不可用时）
+   * 包含基本的翻译降级策略
    */
   private getDefaultAnalysis(title: string, content: string, sourceCategory?: string): NewsAnalysisResult {
+    // 检测文本是否主要是中文
+    const isChinese = this.isMostlyChinese(title);
+
+    // 如果原文是中文，直接使用；否则提供基本的提示信息
+    const titleCn = isChinese ? title : this.getBasicTranslation(title);
+    const summary = content.substring(0, 200) + '...';
+    const summaryCn = this.isMostlyChinese(content)
+      ? summary
+      : '[自动翻译暂不可用] ' + summary;
+
     return {
       category: sourceCategory || 'other',
       region: 'global',
       impactScore: 5,
-      summary: content.substring(0, 200) + '...',
+      summary,
       whyItMatters: '',
       tags: this.extractSimpleTags(title),
-      // 中文翻译字段（默认为空）
-      titleCn: '',
-      summaryCn: '',
-      whyItMattersCn: '',
+      // 中文翻译字段（使用降级策略）
+      titleCn,
+      summaryCn,
+      whyItMattersCn: '[AI分析服务暂时不可用]',
     };
+  }
+
+  /**
+   * 检测文本是否主要是中文
+   */
+  private isMostlyChinese(text: string): boolean {
+    if (!text) return false;
+
+    // 计算中文字符的比例
+    const chineseChars = text.match(/[\u4e00-\u9fa5]/g) || [];
+    const totalChars = text.replace(/\s/g, '').length;
+
+    return totalChars > 0 && (chineseChars.length / totalChars) > 0.3;
+  }
+
+  /**
+   * 基本翻译（提供关键词翻译或提示信息）
+   */
+  private getBasicTranslation(text: string): string {
+    if (!text) return '';
+
+    // 如果文本本身就包含中文，直接返回
+    if (this.isMostlyChinese(text)) {
+      return text;
+    }
+
+    // 常见AI术语的简单映射
+    const commonTerms: Record<string, string> = {
+      'AI': '人工智能',
+      'Artificial Intelligence': '人工智能',
+      'Machine Learning': '机器学习',
+      'Deep Learning': '深度学习',
+      'Neural Network': '神经网络',
+      'GPT': 'GPT',
+      'LLM': '大语言模型',
+      'ChatGPT': 'ChatGPT',
+      'OpenAI': 'OpenAI',
+      'Google': '谷歌',
+      'Microsoft': '微软',
+      'Meta': 'Meta',
+      'Apple': '苹果',
+      'Amazon': '亚马逊',
+      'NVIDIA': '英伟达',
+      'Releases': '发布',
+      'Announces': '宣布',
+      'Launches': '推出',
+      'Introduces': '介绍',
+      'Research': '研究',
+      'Model': '模型',
+      'API': 'API',
+      'Update': '更新',
+      'New': '新',
+      'Breakthrough': '突破',
+    };
+
+    // 尝试替换常见术语
+    let translated = text;
+    for (const [en, cn] of Object.entries(commonTerms)) {
+      const regex = new RegExp(`\\b${en}\\b`, 'gi');
+      translated = translated.replace(regex, cn);
+    }
+
+    // 如果翻译后仍然大部分是英文，添加提示
+    if (!this.isMostlyChinese(translated)) {
+      return `[机器翻译] ${text}`;
+    }
+
+    return translated;
   }
 
   /**
