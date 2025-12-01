@@ -33,15 +33,20 @@ const NewsCard: React.FC<NewsCardProps> = ({
       ? 'info'
       : 'default';
 
-  // 默认显示中文，如果没有中文则显示英文
-  // 当全局翻译开启时，强制显示中文（如果有的话）
+  // 默认显示中文，点击"显示原文"按钮时显示英文
+  // globalTranslateEnabled = false（默认）：显示中文
+  // globalTranslateEnabled = true（显示原文）：显示英文
   const displayTitle = globalTranslateEnabled
-    ? (item.titleCn || item.title)  // 全局翻译：优先中文，没有则英文
-    : (item.titleCn || item.title); // 默认：也优先显示中文
+    ? item.title  // 显示原文：英文标题
+    : (item.titleCn || item.title); // 默认：中文标题，没有则显示英文
 
   const displaySummary = globalTranslateEnabled
-    ? (item.summaryCn || item.summary) // 全局翻译：优先中文，没有则英文
-    : (item.summaryCn || item.summary); // 默认：也优先显示中文
+    ? item.summary // 显示原文：英文摘要
+    : (item.summaryCn || item.summary); // 默认：中文摘要，没有则显示英文
+
+  const displayWhyItMatters = globalTranslateEnabled
+    ? item.whyItMatters // 显示原文：英文重要性说明
+    : (item.whyItMattersCn || item.whyItMatters); // 默认：中文重要性说明，没有则显示英文
 
   // Search engine URLs
   const generateSearchUrl = (engine: 'google' | 'baidu' | 'bing', query: string) => {
@@ -83,6 +88,12 @@ const NewsCard: React.FC<NewsCardProps> = ({
             </div>
             <h3 className="text-lg font-semibold text-white mb-2">{displayTitle}</h3>
             <p className="text-sm text-gray-300 line-clamp-2 mb-2">{displaySummary}</p>
+            {displayWhyItMatters && (
+              <div className="mb-2 p-2 bg-purple-500/10 border border-purple-500/30 rounded">
+                <p className="text-xs text-purple-300 font-semibold mb-1">💡 {t('newsCard.whyItMatters')}</p>
+                <p className="text-xs text-gray-300 line-clamp-2">{displayWhyItMatters}</p>
+              </div>
+            )}
             <div className="flex flex-wrap items-center gap-3 text-xs">
               <span className="text-gray-400">Source: {item.source}</span>
               {item.url && (
@@ -172,7 +183,14 @@ const NewsCard: React.FC<NewsCardProps> = ({
       </div>
 
       <h3 className="text-xl font-bold text-white mb-3 leading-tight">{displayTitle}</h3>
-      <p className="text-sm text-gray-300 mb-4 line-clamp-3">{displaySummary}</p>
+      <p className="text-sm text-gray-300 mb-3 line-clamp-3">{displaySummary}</p>
+
+      {displayWhyItMatters && (
+        <div className="mb-4 p-3 bg-purple-500/10 border border-purple-500/30 rounded-lg">
+          <p className="text-xs text-purple-300 font-semibold mb-1">💡 {t('newsCard.whyItMatters')}</p>
+          <p className="text-sm text-gray-300 line-clamp-2">{displayWhyItMatters}</p>
+        </div>
+      )}
 
       <div className="flex items-start justify-between pt-4 border-t border-white/10">
         <div className="flex-1 min-w-0">

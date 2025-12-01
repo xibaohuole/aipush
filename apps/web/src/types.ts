@@ -38,6 +38,7 @@ export interface NewsItem {
   isTrending?: boolean;
   tags?: string[];
   whyItMatters?: string;
+  whyItMattersCn?: string;
 }
 
 export interface DailySummary {

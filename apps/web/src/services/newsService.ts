@@ -84,7 +84,9 @@ export async function fetchNewsFromAPI(params?: {
     const items = data.data.items.map((item: any) => ({
       id: item.id,
       title: item.title,
+      titleCn: item.titleCn,
       summary: item.summary,
+      summaryCn: item.summaryCn,
       category: categoryMap[item.category?.toLowerCase()] || NewsCategory.AI,
       region: regionMap[item.region?.toLowerCase()] || Region.GLOBAL,
       impact: item.impactScore,
@@ -94,6 +96,7 @@ export async function fetchNewsFromAPI(params?: {
       isTrending: item.isTrending,
       tags: item.tags || [],
       whyItMatters: item.whyItMatters,
+      whyItMattersCn: item.whyItMattersCn,
     }));
 
     return {
