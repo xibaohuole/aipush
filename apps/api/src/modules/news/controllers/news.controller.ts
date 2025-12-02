@@ -98,9 +98,9 @@ export class NewsController {
       // 全文搜索查询（使用ts_rank排序）
       const selectQuery = `
         SELECT
-          id, title, title_cn as "titleCn", summary, summary_cn as "summaryCn",
+          id::text, title, title_cn as "titleCn", summary, summary_cn as "summaryCn",
           why_it_matters as "whyItMatters", why_it_matters_cn as "whyItMattersCn",
-          source, source_url as "sourceUrl", category, region,
+          source, source_url as "sourceUrl", category::text, region::text,
           impact_score as "impactScore", published_at as "publishedAt",
           is_trending as "isTrending", view_count as "viewCount",
           bookmark_count as "bookmarkCount", tags,
@@ -113,7 +113,28 @@ export class NewsController {
       `;
       params.push(limit, skip);
 
-      items = await this.prisma.$queryRawUnsafe(selectQuery, ...params);
+      const rawItems = await this.prisma.$queryRawUnsafe(selectQuery, ...params);
+
+      // 格式化原始查询结果，确保数据类型正确
+      items = rawItems.map((item: any) => ({
+        id: item.id,
+        title: item.title,
+        titleCn: item.titleCn,
+        summary: item.summary,
+        summaryCn: item.summaryCn,
+        whyItMatters: item.whyItMatters,
+        whyItMattersCn: item.whyItMattersCn,
+        source: item.source,
+        sourceUrl: item.sourceUrl,
+        category: item.category,
+        region: item.region,
+        impactScore: item.impactScore,
+        publishedAt: item.publishedAt instanceof Date ? item.publishedAt : new Date(item.publishedAt),
+        isTrending: item.isTrending,
+        viewCount: item.viewCount,
+        bookmarkCount: item.bookmarkCount,
+        tags: Array.isArray(item.tags) ? item.tags : [],
+      }));
 
       // 计算总数
       const countQuery = `SELECT COUNT(*) as count FROM news ${whereClause}`;
