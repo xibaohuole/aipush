@@ -3,6 +3,7 @@ export enum ViewState {
   TRENDING = 'TRENDING',
   DAILY_BRIEF = 'DAILY_BRIEF',
   SETTINGS = 'SETTINGS',
+  NEWS_DETAIL = 'NEWS_DETAIL',
 }
 
 export enum NewsCategory {

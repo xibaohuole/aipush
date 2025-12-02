@@ -8,6 +8,7 @@ import Settings from './components/Settings';
 import TrendingList from './components/TrendingList';
 import AddNewsModal from './components/AddNewsModal';
 import DashboardStats from './components/DashboardStats';
+import NewsDetail from './components/NewsDetail';
 import { ViewState, NewsItem, DailySummary, NewsCategory, Region, ViewMode } from './types';
 import { fetchRealtimeNews, generateDailyBriefing, askAI } from './services/geminiService';
 import { fetchNewsFromAPI } from './services/newsService';
@@ -39,6 +40,7 @@ const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<ViewState>(ViewState.DASHBOARD);
   const [newsItems, setNewsItems] = useState<NewsItem[]>([]);
   const [dailySummary, setDailySummary] = useState<DailySummary | null>(null);
+  const [selectedNewsId, setSelectedNewsId] = useState<string | null>(null);
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
@@ -276,6 +278,20 @@ const App: React.FC = () => {
     setAskQuestion('');
     setAskAnswer('');
     setAskModalOpen(true);
+  };
+
+  // 导航到新闻详情页
+  const navigateToNewsDetail = (newsId: string) => {
+    setSelectedNewsId(newsId);
+    setCurrentView(ViewState.NEWS_DETAIL);
+    window.scrollTo(0, 0);
+  };
+
+  // 从详情页返回
+  const navigateBackFromDetail = () => {
+    setSelectedNewsId(null);
+    setCurrentView(ViewState.DASHBOARD);
+    window.scrollTo(0, 0);
   };
 
   // 过滤现在由后端处理，前端只需显示返回的新闻
@@ -543,10 +559,12 @@ const App: React.FC = () => {
                             setBookmarkedItems((prev) => {
                               const newSet = new Set(prev);
                               newSet.has(id) ? newSet.delete(id) : newSet.add(id);
+                              saveBookmarks(newSet);
                               return newSet;
                             })
                           }
                           onAsk={openAskModal}
+                          onViewDetail={navigateToNewsDetail}
                         />
                       ))
                     )}
@@ -600,6 +618,25 @@ const App: React.FC = () => {
               />
             )}
           </div>
+
+          {/* News Detail View */}
+          {currentView === ViewState.NEWS_DETAIL && selectedNewsId && (
+            <NewsDetail
+              newsId={selectedNewsId}
+              onBack={navigateBackFromDetail}
+              onToggleBookmark={(id) =>
+                setBookmarkedItems((prev) => {
+                  const newSet = new Set(prev);
+                  newSet.has(id) ? newSet.delete(id) : newSet.add(id);
+                  saveBookmarks(newSet);
+                  return newSet;
+                })
+              }
+              isBookmarked={bookmarkedItems.has(selectedNewsId)}
+              globalTranslateEnabled={globalTranslateEnabled}
+              onNavigateToNews={navigateToNewsDetail}
+            />
+          )}
         </div>
       </main>
     </div>

@@ -11,6 +11,7 @@ interface NewsCardProps {
   viewMode: ViewMode;
   onToggleBookmark: (id: string) => void;
   onAsk: (item: NewsItem) => void;
+  onViewDetail?: (id: string) => void; // 点击查看详情
   globalTranslateEnabled?: boolean; // 全局翻译开关
 }
 
@@ -20,6 +21,7 @@ const NewsCard: React.FC<NewsCardProps> = ({
   viewMode,
   onToggleBookmark,
   onAsk,
+  onViewDetail,
   globalTranslateEnabled = false,
 }) => {
   const { t } = useTranslation();
@@ -74,7 +76,10 @@ const NewsCard: React.FC<NewsCardProps> = ({
     return (
       <div className="bg-white/5 border border-white/10 rounded-lg p-4 hover:bg-white/10 transition-all">
         <div className="flex items-start justify-between gap-4">
-          <div className="flex-1 min-w-0">
+          <div
+            className="flex-1 min-w-0 cursor-pointer"
+            onClick={() => onViewDetail && onViewDetail(item.id)}
+          >
             <div className="flex items-center gap-2 mb-2">
               <Badge variant={impactColor} size="sm">
                 {item.category}
@@ -111,13 +116,19 @@ const NewsCard: React.FC<NewsCardProps> = ({
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             <button
-              onClick={() => onAsk(item)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onAsk(item);
+              }}
               className="p-2 rounded-lg bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-400 transition"
             >
               <Zap className="w-4 h-4" />
             </button>
             <button
-              onClick={() => onToggleBookmark(item.id)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleBookmark(item.id);
+              }}
               className={`p-2 rounded-lg transition ${
                 isBookmarked
                   ? 'bg-yellow-600/20 text-yellow-400'
@@ -130,6 +141,7 @@ const NewsCard: React.FC<NewsCardProps> = ({
             {/* Search engines dropdown */}
             <div className="relative group">
               <button
+                onClick={(e) => e.stopPropagation()}
                 className="p-2 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 transition"
                 title="Search article"
               >
@@ -167,7 +179,10 @@ const NewsCard: React.FC<NewsCardProps> = ({
   }
 
   return (
-    <div className="bg-white/5 border border-white/10 rounded-lg p-6 hover:bg-white/10 hover:border-white/20 transition-all">
+    <div
+      className="bg-white/5 border border-white/10 rounded-lg p-6 hover:bg-white/10 hover:border-white/20 transition-all cursor-pointer"
+      onClick={() => onViewDetail && onViewDetail(item.id)}
+    >
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2">
           <Badge variant={impactColor} size="sm">
@@ -209,14 +224,20 @@ const NewsCard: React.FC<NewsCardProps> = ({
         </div>
         <div className="flex items-center gap-2 ml-4">
           <button
-            onClick={() => onAsk(item)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onAsk(item);
+            }}
             className="p-2 rounded-lg bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-400 transition"
             title={t('newsCard.actions.askAI')}
           >
             <Zap className="w-4 h-4" />
           </button>
           <button
-            onClick={() => onToggleBookmark(item.id)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleBookmark(item.id);
+            }}
             className={`p-2 rounded-lg transition ${
               isBookmarked
                 ? 'bg-yellow-600/20 text-yellow-400'
@@ -226,13 +247,18 @@ const NewsCard: React.FC<NewsCardProps> = ({
           >
             <Bookmark className="w-4 h-4" fill={isBookmarked ? 'currentColor' : 'none'} />
           </button>
-          <button className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 transition" title={t('newsCard.actions.share')}>
+          <button
+            onClick={(e) => e.stopPropagation()}
+            className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 transition"
+            title={t('newsCard.actions.share')}
+          >
             <Share2 className="w-4 h-4" />
           </button>
 
           {/* Search engines dropdown */}
           <div className="relative group">
             <button
+              onClick={(e) => e.stopPropagation()}
               className="p-2 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 transition"
               title="Search article"
             >
