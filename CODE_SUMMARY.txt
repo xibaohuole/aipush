@@ -1,0 +1,233 @@
+================================================================================
+                      代码探索总结 - 新闻卡片组件
+================================================================================
+
+第1部分：核心文件位置
+================================================================================
+
+1. 新闻卡片组件
+   路径: C:\Users\Li Wen Xuan\Desktop\aipush\apps\web\src\components\NewsCard.tsx
+   大小: 10,226 字节
+   功能: 显示单个新闻卡片，支持CARD和LIST两种视图模式
+
+2. 类型定义
+   路径: C:\Users\Li Wen Xuan\Desktop\aipush\apps\web\src\types.ts
+   接口: NewsItem - 包含title, titleCn, summary, summaryCn, whyItMatters等字段
+
+3. 主应用和状态管理
+   路径: C:\Users\Li Wen Xuan\Desktop\aipush\apps\web\src\App.tsx
+   状态: globalTranslateEnabled - 全局翻译开关状态
+
+4. 数据映射层
+   路径: C:\Users\Li Wen Xuan\Desktop\aipush\apps\web\src\services\newsService.ts
+   问题: titleCn和summaryCn映射缺失！
+
+5. 后端API控制器
+   路径: C:\Users\Li Wen Xuan\Desktop\aipush\apps\api\src\modules\news\controllers\news.controller.ts
+   功能: 返回titleCn, summaryCn, whyItMattersCn等字段
+
+6. 后端AI分析服务
+   路径: C:\Users\Li Wen Xuan\Desktop\aipush\apps\api\src\modules\news\services\ai-analyzer.service.ts
+   功能: 生成中文翻译字段
+
+
+第2部分：显示逻辑
+================================================================================
+
+当前代码（NewsCard.tsx 第24-39行）:
+----------------------------------
+const displayTitle = globalTranslateEnabled
+  ? (item.titleCn || item.title)
+  : (item.titleCn || item.title);
+
+const displaySummary = globalTranslateEnabled
+  ? (item.summaryCn || item.summary)
+  : (item.summaryCn || item.summary);
+
+
+关键发现:
+✗ 两个分支逻辑完全相同！
+✗ globalTranslateEnabled为true和false时显示内容相同
+✗ 按钮形同虚设
+
+
+第3部分：全局翻译开关
+================================================================================
+
+按钮位置: App.tsx 第551-560行
+状态变量: globalTranslateEnabled (初始值: false)
+
+按钮状态:
+- 关闭时: "全部翻译" (灰色)
+- 开启时: "显示原文" (绿色)
+
+点击行为: setGlobalTranslateEnabled(!globalTranslateEnabled)
+
+按钮代码:
+<Button
+  onClick={() => setGlobalTranslateEnabled(!globalTranslateEnabled)}
+  variant={globalTranslateEnabled ? "success" : "secondary"}
+>
+  <Globe className="w-4 h-4" />
+  {globalTranslateEnabled ? '显示原文' : '全部翻译'}
+</Button>
+
+
+第4部分：数据流问题
+================================================================================
+
+问题1: 前端数据映射缺失
+-----
+位置: newsService.ts 第62-100行
+
+后端返回了这些字段:
+✓ title (英文标题)
+✓ titleCn (中文标题) 
+✓ summary (英文摘要)
+✓ summaryCn (中文摘要)
+✓ whyItMatters (英文重要性)
+✓ whyItMattersCn (中文重要性)
+
+前端映射只包含:
+✓ title
+✗ titleCn (缺失！)
+✓ summary
+✗ summaryCn (缺失！)
+✓ whyItMatters
+✗ whyItMattersCn (缺失！)
+
+结果: NewsItem对象中titleCn和summaryCn始终为undefined
+
+
+问题2: 显示逻辑错误
+-----
+即使titleCn和summaryCn被正确映射，显示逻辑也有问题
+
+当前:
+displayTitle = item.titleCn || item.title  (无论开关状态都这样)
+
+应该:
+displayTitle = globalTranslateEnabled
+  ? item.title                    // 显示英文
+  : (item.titleCn || item.title)  // 显示中文或英文
+
+
+问题3: whyItMatters字段未使用
+-----
+- NewsItem接口中定义了该字段
+- 后端生成了中文版本(whyItMattersCn)
+- NewsCard组件完全没有显示这个字段
+
+
+第5部分：语言偏好管理
+================================================================================
+
+存储位置: localStorage
+键名: 'aipush_language'
+支持的值: 'English' 或 'Chinese'
+
+读写函数位置: /apps/web/src/utils/localStorage.ts
+
+getLanguage(): 获取存储的用户语言偏好，默认'English'
+saveLanguage(lang): 保存用户语言偏好
+
+在App.tsx中:
+const [targetLanguage, setTargetLanguage] = useState(() => getLanguage());
+
+useEffect(() => {
+  saveLanguage(targetLanguage);
+  // 同时更新i18n
+  i18n.changeLanguage(targetLanguage === 'Chinese' ? 'zh-CN' : 'en-US');
+}, [targetLanguage, i18n]);
+
+
+第6部分：后端中文翻译生成
+================================================================================
+
+AI分析服务返回的字段:
+- titleCn: 标题的中文翻译
+- summaryCn: 摘要的中文翻译
+- whyItMattersCn: 重要性说明的中文翻译
+
+服务降级策略:
+- 如果AI服务失败，使用基本翻译或原文
+- 如果是中文原文，直接使用而不翻译
+- 如果无法翻译，显示'[自动翻译暂不可用]'
+
+
+第7部分：修复建议
+================================================================================
+
+修复1: 添加数据映射
+位置: newsService.ts第62-100行的map函数
+添加:
+  titleCn: item.titleCn,
+  summaryCn: item.summaryCn,
+
+修复2: 修正显示逻辑
+位置: NewsCard.tsx第24-39行
+改为:
+  const displayTitle = globalTranslateEnabled
+    ? item.title                      // 显示原文（英文）
+    : (item.titleCn || item.title);  // 显示中文或英文
+
+修复3: 显示whyItMatters字段
+在NewsCard中添加显示代码:
+  {item.whyItMatters && (
+    <div className="mt-2 pt-2 border-t border-white/10">
+      <p className="text-xs text-gray-400 italic">
+        {displayWhyItMatters}
+      </p>
+    </div>
+  )}
+
+
+第8部分：文件清单
+================================================================================
+
+前端文件:
+- /apps/web/src/components/NewsCard.tsx (主要组件)
+- /apps/web/src/App.tsx (状态管理)
+- /apps/web/src/types.ts (类型定义)
+- /apps/web/src/services/newsService.ts (数据映射问题所在)
+- /apps/web/src/components/Settings.tsx (语言设置)
+- /apps/web/src/utils/localStorage.ts (偏好存储)
+
+后端文件:
+- /apps/api/src/modules/news/controllers/news.controller.ts (API返回)
+- /apps/api/src/modules/news/services/ai-analyzer.service.ts (翻译生成)
+
+
+第9部分：关键代码片段总结
+================================================================================
+
+全局开关按钮:
+位置: App.tsx ~551行
+onClick={() => setGlobalTranslateEnabled(!globalTranslateEnabled)}
+
+显示逻辑（有问题）:
+位置: NewsCard.tsx ~24行
+const displayTitle = globalTranslateEnabled
+  ? (item.titleCn || item.title)
+  : (item.titleCn || item.title);
+
+数据映射（缺失）:
+位置: newsService.ts ~80行
+// 缺少这些行:
+// titleCn: item.titleCn,
+// summaryCn: item.summaryCn,
+
+语言存储:
+位置: localStorage.ts
+getLanguage() / saveLanguage()
+
+组件属性:
+interface NewsCardProps {
+  item: NewsItem;
+  globalTranslateEnabled?: boolean;
+  // ... 其他
+}
+
+================================================================================
+                              END OF SUMMARY
+================================================================================

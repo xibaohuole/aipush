@@ -113,7 +113,7 @@ export class NewsController {
       `;
       params.push(limit, skip);
 
-      const rawItems = await this.prisma.$queryRawUnsafe(selectQuery, ...params);
+      const rawItems: any[] = await this.prisma.$queryRawUnsafe(selectQuery, ...params);
 
       // 格式化原始查询结果，确保数据类型正确
       items = rawItems.map((item: any) => ({

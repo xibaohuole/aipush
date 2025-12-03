@@ -364,6 +364,30 @@ MIT License
 
 ---
 
+## 📚 文档导航
+
+### 快速开始
+- **[本地开发](./QUICKSTART.md)** - Docker 快速启动
+- **[部署指南](./DEPLOYMENT.md)** - 多平台部署选项
+
+### 部署文档
+- **[Render 部署](./DEPLOYMENT_RENDER.md)** - 免费云部署（推荐）
+- **[Railway 部署](./DEPLOYMENT.md#railway-部署)** - 快速云部署
+
+### 技术文档
+- **[性能优化](./PERFORMANCE.md)** - 性能提升 72-85%
+- **[新闻采集](./采集新闻数据说明.md)** - 数据采集说明
+
+### 开发参考
+- **[开发参考](./DEV_REFERENCE.md)** - 快速参考指南
+- **[组件分析](./DEV_COMPONENTS.md)** - 组件详细分析
+- **[故障排查](./TROUBLESHOOTING.md)** - 常见问题解决
+
+### 维护指南
+- **[文档维护](./DOCS_GUIDE.md)** - 文档维护规范
+
+---
+
 ## 👨‍💻 维护者
 
 - **Email**: support@aipulsedaily.com

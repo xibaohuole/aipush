@@ -1,364 +1,319 @@
-# 部署指南 - Railway + GitHub Pages
+# 部署指南 - AI Pulse Daily
 
-本项目采用前后端分离部署：
-- **前端**: GitHub Pages（自动部署）
-- **后端**: Railway（需要手动配置）
+> 多平台部署选项，选择最适合你的方式
+
+## 目录
+
+- [快速选择](#快速选择)
+- [Render 部署](#render-部署推荐)
+- [Railway 部署](#railway-部署)
+- [本地开发](#本地开发)
 
 ---
 
-## 🚀 后端部署到 Railway
+## 快速选择
 
-### 方式一：通过 Railway CLI（推荐）
+### 平台对比
 
-#### 1. 安装 Railway CLI
+| 平台 | 费用 | 优势 | 劣势 | 推荐场景 |
+|------|------|------|------|----------|
+| **Render** | 完全免费 | • 无需信用卡<br>• 永久免费<br>• 自动部署 | • 服务休眠<br>• 启动慢 | ✅ 个人项目<br>✅ 学习演示 |
+| **Railway** | $5/月免费额度 | • 快速<br>• 不休眠<br>• 优秀体验 | • 需要信用卡 | ✅ 小型应用<br>✅ 原型项目 |
+| **本地开发** | 免费 | • 完全控制<br>• 快速迭代 | • 需要配置环境 | ✅ 开发调试 |
+
+### 推荐方案
+
+- 🆓 **无预算** → **Render**（完全免费）
+- 💳 **有信用卡** → **Railway**（更好性能）
+- 💻 **开发阶段** → **本地 Docker**（最快）
+
+---
+
+## Render 部署（推荐）
+
+### 快速开始
+
+**部署时间**: 15 分钟 | **难度**: 简单 | **成本**: $0/月
+
+1. **创建账户**: https://render.com
+2. **创建服务**: PostgreSQL + Redis + Web Service
+3. **配置环境变量**:
+   ```env
+   DATABASE_URL=<Internal URL>
+   REDIS_HOST=<Redis Host>
+   GLM_API_KEY=你的API密钥
+   CORS_ORIGIN=https://你的用户名.github.io
+   ```
+4. **运行迁移**:
+   ```bash
+   npx prisma migrate deploy
+   ```
+
+### 详细指南
+
+查看完整文档：**[DEPLOYMENT_RENDER.md](./DEPLOYMENT_RENDER.md)**
+
+包含：
+- ✅ 详细分步指南
+- ✅ 性能优化配置
+- ✅ 故障排查
+- ✅ 防止休眠方案
+
+---
+
+## Railway 部署
+
+### 快速开始
+
+**部署时间**: 10 分钟 | **难度**: 简单 | **成本**: ~$5/月
+
+#### 方式一：Railway CLI（推荐）
 
 ```bash
-# Windows (使用 npm)
+# 1. 安装 Railway CLI
 npm install -g @railway/cli
 
-# macOS (使用 Homebrew)
-brew install railway
-
-# 验证安装
-railway --version
-```
-
-#### 2. 登录 Railway
-
-```bash
+# 2. 登录
 railway login
-```
 
-这会打开浏览器进行认证。
-
-#### 3. 初始化项目
-
-```bash
-# 在项目根目录执行
+# 3. 初始化项目
 railway init
 
-# 选择 "Create a new project"
-# 输入项目名称，例如：aipush-backend
-```
-
-#### 4. 添加数据库服务
-
-```bash
-# 添加 PostgreSQL
+# 4. 添加数据库
 railway add --database postgres
-
-# 添加 Redis
 railway add --database redis
-```
 
-Railway 会自动创建数据库并设置 `DATABASE_URL` 和 `REDIS_URL` 环境变量。
-
-#### 5. 配置环境变量
-
-```bash
-# 手动设置其他环境变量
-railway variables set GLM_API_KEY="2e99b6f1249c4912aa53bc10edaf6ed3.TnoDt5b1sKSgWumM"
-railway variables set JWT_SECRET="aipush-super-secret-jwt-key-production-change-this"
+# 5. 配置环境变量
+railway variables set GLM_API_KEY="你的密钥"
+railway variables set JWT_SECRET="你的JWT密钥"
 railway variables set NODE_ENV="production"
-railway variables set PORT="4000"
 
-# 等待 GitHub Pages URL 后设置 CORS（见步骤 7）
-# railway variables set CORS_ORIGIN="https://你的用户名.github.io"
-```
-
-#### 6. 部署后端
-
-```bash
+# 6. 部署
 railway up
 ```
 
-部署完成后，Railway 会给你一个 URL，例如：
-```
-https://aipush-backend-production.up.railway.app
-```
+#### 方式二：Web 界面
 
-#### 7. 配置 CORS（重要！）
+1. 访问 https://railway.app
+2. 连接 GitHub 仓库
+3. 添加 PostgreSQL 和 Redis
+4. 配置环境变量
+5. 自动部署
 
-获取你的 GitHub Pages URL 后，设置 CORS：
+### 配置详情
 
-```bash
-# 替换为你的 GitHub Pages 域名
-railway variables set CORS_ORIGIN="https://你的用户名.github.io"
-
-# 或者自定义域名
-railway variables set CORS_ORIGIN="https://your-custom-domain.com"
-```
-
-#### 8. 运行数据库迁移
+#### Build 设置
 
 ```bash
-# 连接到 Railway 项目
-railway run pnpm --filter @aipush/api prisma:migrate:deploy
+# Build Command
+cd apps/api && pnpm install && pnpm build
 
-# 或者查看数据库
-railway run pnpm --filter @aipush/api prisma:studio
+# Start Command
+cd apps/api && pnpm start:prod
+
+# Watch Paths
+apps/api/**
 ```
 
----
-
-### 方式二：通过 Railway Dashboard（Web 界面）
-
-#### 1. 访问 Railway
-
-打开 https://railway.app 并登录（使用 GitHub 账号）
-
-#### 2. 创建新项目
-
-1. 点击 **New Project**
-2. 选择 **Deploy from GitHub repo**
-3. 选择你的仓库 `aipush`
-4. Railway 会自动检测项目
-
-#### 3. 配置构建设置
-
-在项目设置中：
-
-- **Root Directory**: `/`
-- **Build Command**: `cd apps/api && pnpm install && pnpm build`
-- **Start Command**: `cd apps/api && pnpm start:prod`
-- **Watch Paths**: `apps/api/**`
-
-#### 4. 添加数据库
-
-1. 点击 **New** → **Database** → **Add PostgreSQL**
-2. 点击 **New** → **Database** → **Add Redis**
-
-Railway 会自动设置 `DATABASE_URL` 和 `REDIS_URL`。
-
-#### 5. 配置环境变量
-
-在 **Variables** 标签页添加：
+#### 环境变量
 
 ```env
-GLM_API_KEY=2e99b6f1249c4912aa53bc10edaf6ed3.TnoDt5b1sKSgWumM
-JWT_SECRET=aipush-super-secret-jwt-key-production-change-this
 NODE_ENV=production
 PORT=4000
+GLM_API_KEY=你的GLM API密钥
+JWT_SECRET=你的JWT密钥（32位随机字符串）
+DATABASE_URL=<Railway 自动生成>
+REDIS_URL=<Railway 自动生成>
 CORS_ORIGIN=https://你的用户名.github.io
 ```
 
-#### 6. 部署
+### 数据库迁移
 
-点击 **Deploy** 按钮，Railway 会自动构建和部署。
+```bash
+# 使用 Railway CLI
+railway run pnpm --filter @aipush/api prisma:migrate:deploy
 
-#### 7. 获取后端 URL
-
-部署成功后，在 **Settings** → **Domains** 中：
-1. 点击 **Generate Domain** 生成 Railway 提供的免费域名
-2. 或者添加自定义域名
-
-你会得到类似这样的 URL：
-```
-https://aipush-backend-production.up.railway.app
+# 或在 Railway Shell 中
+cd apps/api && npx prisma migrate deploy
 ```
 
 ---
 
-## 🌐 配置 GitHub Pages（前端）
+## 本地开发
 
-### 1. 设置 GitHub Secret
+### 快速启动
 
-1. 进入你的 GitHub 仓库
-2. **Settings** → **Secrets and variables** → **Actions**
-3. 点击 **New repository secret**
-4. 添加：
+**启动时间**: 5 分钟（首次）| **难度**: 简单
+
+#### 使用 Docker（推荐）
+
+```bash
+# 1. 启动所有服务
+scripts\docker-dev.bat start
+
+# 2. 查看状态
+scripts\docker-dev.bat status
+
+# 3. 访问应用
+# 前端: http://localhost:3000
+# 后端: http://localhost:4000
+# API 文档: http://localhost:4000/api/docs
+```
+
+### 详细指南
+
+查看完整文档：**[QUICKSTART.md](./QUICKSTART.md)**
+
+包含：
+- ✅ Docker 快速启动
+- ✅ 常用命令
+- ✅ 故障排查
+- ✅ 开发工具
+
+---
+
+## 前端部署（GitHub Pages）
+
+### 所有部署方案的前端配置
+
+#### 1. 配置 GitHub Secret
+
+1. GitHub 仓库 → **Settings** → **Secrets and variables** → **Actions**
+2. 添加 Secret：
    - **Name**: `VITE_API_URL`
-   - **Value**: `https://你的railway域名/api/v1`
+   - **Value**: `https://your-backend-url/api/v1`
 
-   例如：`https://aipush-backend-production.up.railway.app/api/v1`
-
-### 2. 启用 GitHub Pages
+#### 2. 启用 GitHub Pages
 
 1. **Settings** → **Pages**
-2. **Source**: 选择 **GitHub Actions**
+2. **Source**: GitHub Actions
 3. 保存
 
-### 3. 触发部署
-
-推送代码到 main 分支会自动触发部署：
+#### 3. 推送代码
 
 ```bash
 git add .
-git commit -m "chore: configure Railway deployment"
+git commit -m "feat: deploy to production"
 git push origin main
 ```
 
+#### 4. 更新 CORS
+
+在后端环境变量中更新：
+
+```env
+CORS_ORIGIN=https://你的用户名.github.io
+```
+
 ---
 
-## ✅ 验证部署
+## 验证部署
 
-### 1. 测试后端 API
+### 后端检查
 
 ```bash
 # 健康检查
-curl https://你的railway域名/api/health
+curl https://your-api-url/api/health
+# 期望: {"status":"ok"}
 
-# 测试 AI 新闻生成
-curl https://你的railway域名/api/v1/news/ai/generate?count=5
+# API 文档
+# 浏览器访问: https://your-api-url/api/docs
 
-# 访问 API 文档
-https://你的railway域名/api/docs
+# AI 新闻生成
+curl https://your-api-url/api/v1/news/ai/generate?count=5
 ```
 
-### 2. 测试前端
+### 前端检查
 
-访问你的 GitHub Pages URL：
-```
-https://你的用户名.github.io/aipush
-```
-
-打开浏览器开发者工具，检查：
-1. Network 标签页 - 确认请求发送到 Railway 后端
-2. Console - 检查是否有 CORS 错误
+1. 访问 GitHub Pages URL
+2. 打开浏览器控制台（F12）
+3. 检查 Network 标签 - API 请求成功
+4. 检查 Console - 无 CORS 错误
+5. 测试功能：刷新新闻、搜索、翻页
 
 ---
 
-## 🔧 常见问题
+## 常见问题
 
-### 1. CORS 错误
+### CORS 错误
 
 **症状**: 浏览器控制台显示 CORS 错误
 
 **解决方法**:
 ```bash
-# 确保 CORS_ORIGIN 设置正确
-railway variables set CORS_ORIGIN="https://你的github-pages域名"
-
-# 重启服务
-railway restart
+# 确保 CORS_ORIGIN 正确设置
+CORS_ORIGIN=https://你的用户名.github.io
+# 注意：不要末尾加斜杠
 ```
 
-### 2. 数据库连接失败
+### 数据库连接失败
 
-**症状**: 后端日志显示数据库连接错误
+**症状**: 后端日志显示数据库错误
 
 **解决方法**:
-```bash
-# 检查 DATABASE_URL 是否设置
-railway variables
+- 检查 DATABASE_URL 是否正确
+- Render: 使用 Internal URL
+- Railway: 确认数据库已创建并连接
 
-# 重新生成 Prisma 客户端
-railway run pnpm --filter @aipush/api prisma:generate
-railway run pnpm --filter @aipush/api prisma:migrate:deploy
-```
+### 环境变量未生效
 
-### 3. 环境变量未生效
-
-**症状**: API 返回 "GLM API key not configured"
+**症状**: API 返回配置错误
 
 **解决方法**:
 ```bash
 # 检查所有环境变量
-railway variables
-
-# 确认 GLM_API_KEY 已设置
-railway variables set GLM_API_KEY="你的密钥"
+# Render: Environment 标签页
+# Railway: railway variables
 
 # 重启服务
-railway restart
-```
-
-### 4. 构建失败
-
-**症状**: Railway 部署失败
-
-**解决方法**:
-```bash
-# 检查 railway.toml 配置
-# 确保 buildCommand 正确
-# 查看 Railway 构建日志找到具体错误
+# Render: Manual Deploy
+# Railway: railway restart
 ```
 
 ---
 
-## 📊 监控和日志
+## 成本估算
 
-### 查看实时日志
+### Render（免费方案）
 
-```bash
-# Railway CLI
-railway logs
+| 服务 | 费用 | 限制 |
+|------|------|------|
+| PostgreSQL | $0 | 512MB 存储 |
+| Redis | $0 | 25MB 内存 |
+| Web Service | $0 | 512MB RAM, 15分钟休眠 |
+| **总计** | **$0/月** | ✅ 完全免费 |
 
-# 或在 Railway Dashboard
-# 项目页面 → Deployments → 点击部署 → View Logs
-```
+### Railway
 
-### 性能监控
-
-Railway 提供内置监控：
-- CPU 使用率
-- 内存使用率
-- 网络流量
-- 请求延迟
-
-访问 Railway Dashboard 查看。
-
----
-
-## 💰 成本估算
-
-### Railway 免费额度（截至 2025）
-
-- **每月免费**: $5 美元额度
-- **自动休眠**: 不活跃服务会自动休眠
-- **数据库**: 包含在免费额度内
-
-### 预估使用量
-
-| 服务 | 预估成本 |
-|------|---------|
-| 后端 API (1 实例) | ~$3-4/月 |
-| PostgreSQL | ~$1-2/月 |
-| Redis | ~$0.5-1/月 |
-| **总计** | ~$5/月（在免费额度内）|
-
-**提示**: 如果流量很低，可以启用 "自动休眠" 功能进一步降低成本。
+| 服务 | 费用 | 限制 |
+|------|------|------|
+| 免费额度 | $5/月 | 包含所有服务 |
+| 后端 API | ~$3-4 | 1 实例 |
+| PostgreSQL | ~$1-2 | 标准配置 |
+| Redis | ~$0.5-1 | 标准配置 |
+| **总计** | ~**$5/月** | 在免费额度内 |
 
 ---
 
-## 🔄 持续部署
+## 下一步
 
-### 自动部署
+部署完成后：
 
-Railway 支持 GitHub 集成：
-1. 推送到 main 分支自动触发部署
-2. 可以设置特定分支或 PR 部署
-
-### 手动部署
-
-```bash
-# 使用 CLI
-railway up
-
-# 强制重新构建
-railway up --force
-```
+1. **性能优化**: 参考 [PERFORMANCE.md](./PERFORMANCE.md)
+2. **数据采集**: 参考 [采集新闻数据说明.md](./采集新闻数据说明.md)
+3. **开发参考**: 参考 [DEV_REFERENCE.md](./DEV_REFERENCE.md)
 
 ---
 
-## 📚 参考链接
+## 相关文档
 
-- [Railway 文档](https://docs.railway.app/)
-- [Railway CLI 指南](https://docs.railway.app/develop/cli)
-- [Prisma 迁移指南](https://www.prisma.io/docs/concepts/components/prisma-migrate)
-- [GitHub Actions 文档](https://docs.github.com/en/actions)
-
----
-
-## 🆘 需要帮助？
-
-如果遇到问题：
-1. 查看 Railway 部署日志
-2. 检查环境变量配置
-3. 验证数据库连接
-4. 查看前端浏览器控制台
-5. 提交 GitHub Issue
+- [DEPLOYMENT_RENDER.md](./DEPLOYMENT_RENDER.md) - Render 详细指南
+- [QUICKSTART.md](./QUICKSTART.md) - 本地开发快速启动
+- [PERFORMANCE.md](./PERFORMANCE.md) - 性能优化指南
+- [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) - 故障排查
 
 ---
 
-**部署成功后，记得更新 README.md 中的部署链接！** 🎉
+**部署愉快！** 🚀
+
+如有问题，请查看相关文档或提交 Issue。
