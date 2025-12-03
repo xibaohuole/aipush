@@ -65,11 +65,15 @@ export class BookmarkService {
 
     if (userId) {
       await this.prisma.bookmark.delete({
-        where: { userId_newsId: { userId, newsId } },
+        where: {
+          userId_newsId: { userId, newsId }
+        } as any,
       });
     } else {
       await this.prisma.bookmark.delete({
-        where: { sessionId_newsId: { sessionId, newsId } },
+        where: {
+          sessionId_newsId: { sessionId, newsId }
+        } as any,
       });
     }
 
@@ -95,11 +99,15 @@ export class BookmarkService {
   async getBookmark(newsId: string, sessionId: string, userId?: string) {
     if (userId) {
       return await this.prisma.bookmark.findUnique({
-        where: { userId_newsId: { userId, newsId } },
+        where: {
+          userId_newsId: { userId, newsId }
+        } as any,
       });
     } else {
       return await this.prisma.bookmark.findUnique({
-        where: { sessionId_newsId: { sessionId, newsId } },
+        where: {
+          sessionId_newsId: { sessionId, newsId }
+        } as any,
       });
     }
   }

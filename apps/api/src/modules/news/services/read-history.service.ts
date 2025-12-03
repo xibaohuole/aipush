@@ -32,7 +32,9 @@ export class ReadHistoryService {
       // 创建或更新已读记录
       const readHistory = userId
         ? await this.prisma.readHistory.upsert({
-            where: { userId_newsId: { userId, newsId } },
+            where: {
+              userId_newsId: { userId, newsId }
+            } as any,
             update: {
               readAt: new Date(),
               readDuration: readDuration ?? undefined,
@@ -46,7 +48,9 @@ export class ReadHistoryService {
             },
           })
         : await this.prisma.readHistory.upsert({
-            where: { sessionId_newsId: { sessionId, newsId } },
+            where: {
+              sessionId_newsId: { sessionId, newsId }
+            } as any,
             update: {
               readAt: new Date(),
               readDuration: readDuration ?? undefined,
@@ -91,10 +95,14 @@ export class ReadHistoryService {
     // 检查数据库
     const readHistory = userId
       ? await this.prisma.readHistory.findUnique({
-          where: { userId_newsId: { userId, newsId } },
+          where: {
+            userId_newsId: { userId, newsId }
+          } as any,
         })
       : await this.prisma.readHistory.findUnique({
-          where: { sessionId_newsId: { sessionId, newsId } },
+          where: {
+            sessionId_newsId: { sessionId, newsId }
+          } as any,
         });
     if (readHistory) {
       // 回写到 Redis
@@ -126,7 +134,7 @@ export class ReadHistoryService {
       select: { newsId: true },
     });
 
-    const readIds = new Set(readRecords.map(r => r.newsId));
+    const readIds = new Set(readRecords.map((r: { newsId: string }) => r.newsId));
 
     const result: Record<string, boolean> = {};
     for (const newsId of newsIds) {
