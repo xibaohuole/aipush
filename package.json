@@ -8,6 +8,8 @@
     "packages/*"
   ],
   "scripts": {
+    "postinstall": "cd apps/api && pnpm prisma:generate",
+    "prepare": "husky",
     "dev": "turbo run dev",
     "build": "turbo run build",
     "lint": "turbo run lint",
@@ -15,11 +17,14 @@
     "test": "turbo run test",
     "clean": "turbo run clean",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "prisma:generate": "cd apps/api && pnpm prisma:generate",
+    "validate": "pnpm type-check && pnpm lint",
     "kill-port": "node -e \"const port = process.argv[1] || 4000; const { execSync } = require('child_process'); try { const cmd = process.platform === 'win32' ? `for /f \\\"tokens=5\\\" %a in ('netstat -ano ^| findstr :${port}') do @taskkill /F /PID %a` : `lsof -ti:${port} | xargs kill -9`; execSync(cmd, {stdio: 'inherit', shell: true}); console.log('端口', port, '已清理'); } catch(e) { console.log('端口', port, '未被占用或清理失败'); }\"",
     "kill:4000": "bash kill-port.sh 4000"
   },
   "devDependencies": {
     "@turbo/gen": "^2.3.3",
+    "husky": "^9.0.0",
     "prettier": "^3.4.2",
     "turbo": "^2.3.3"
   },

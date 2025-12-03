@@ -31,6 +31,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Generate Prisma Client
+        run: pnpm prisma:generate
+
       # Turbo Cache temporarily disabled to force clean rebuild
       # - name: Turbo Cache
       #   uses: actions/cache@v4

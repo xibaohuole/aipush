@@ -27,8 +27,8 @@ export class BookmarkService {
       const bookmark = await this.prisma.bookmark.create({
         data: {
           newsId,
-          userId: userId || null,
-          sessionId: sessionId || null,
+          ...(userId && { userId }),
+          ...(sessionId && !userId && { sessionId }),
         },
       });
 
@@ -63,11 +63,15 @@ export class BookmarkService {
       throw new BadRequestException('Either userId or sessionId is required');
     }
 
-    const where = userId
-      ? { userId_newsId: { userId, newsId } }
-      : { sessionId_newsId: { sessionId, newsId } };
-
-    await this.prisma.bookmark.delete({ where });
+    if (userId) {
+      await this.prisma.bookmark.delete({
+        where: { userId_newsId: { userId, newsId } },
+      });
+    } else {
+      await this.prisma.bookmark.delete({
+        where: { sessionId_newsId: { sessionId, newsId } },
+      });
+    }
 
     // 更新新闻表的书签计数
     await this.prisma.news.update({
@@ -89,11 +93,15 @@ export class BookmarkService {
    * 获取单个书签
    */
   async getBookmark(newsId: string, sessionId: string, userId?: string) {
-    const where = userId
-      ? { userId_newsId: { userId, newsId } }
-      : { sessionId_newsId: { sessionId, newsId } };
-
-    return await this.prisma.bookmark.findUnique({ where });
+    if (userId) {
+      return await this.prisma.bookmark.findUnique({
+        where: { userId_newsId: { userId, newsId } },
+      });
+    } else {
+      return await this.prisma.bookmark.findUnique({
+        where: { sessionId_newsId: { sessionId, newsId } },
+      });
+    }
   }
 
   /**

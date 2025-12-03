@@ -1,0 +1,13 @@
+#!/bin/sh
+
+echo "🔍 Running API type check before commit..."
+
+cd apps/api && pnpm type-check
+
+if [ $? -ne 0 ]; then
+  echo "❌ API type check failed. Please fix type errors before committing."
+  echo "💡 Run 'cd apps/api && pnpm type-check' to see errors"
+  exit 1
+fi
+
+echo "✅ API type check passed"

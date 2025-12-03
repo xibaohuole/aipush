@@ -30,23 +30,35 @@ export class ReadHistoryService {
       }
 
       // 创建或更新已读记录
-      const readHistory = await this.prisma.readHistory.upsert({
-        where: userId
-          ? { userId_newsId: { userId, newsId } }
-          : { sessionId_newsId: { sessionId, newsId } },
-        update: {
-          readAt: new Date(),
-          readDuration: readDuration || undefined,
-          scrollDepth: scrollDepth || undefined,
-        },
-        create: {
-          newsId,
-          userId: userId || null,
-          sessionId: sessionId || null,
-          readDuration: readDuration || null,
-          scrollDepth: scrollDepth || null,
-        },
-      });
+      const readHistory = userId
+        ? await this.prisma.readHistory.upsert({
+            where: { userId_newsId: { userId, newsId } },
+            update: {
+              readAt: new Date(),
+              readDuration: readDuration ?? undefined,
+              scrollDepth: scrollDepth ?? undefined,
+            },
+            create: {
+              newsId,
+              userId,
+              readDuration: readDuration ?? undefined,
+              scrollDepth: scrollDepth ?? undefined,
+            },
+          })
+        : await this.prisma.readHistory.upsert({
+            where: { sessionId_newsId: { sessionId, newsId } },
+            update: {
+              readAt: new Date(),
+              readDuration: readDuration ?? undefined,
+              scrollDepth: scrollDepth ?? undefined,
+            },
+            create: {
+              newsId,
+              sessionId,
+              readDuration: readDuration ?? undefined,
+              scrollDepth: scrollDepth ?? undefined,
+            },
+          });
 
       // 缓存到 Redis (TTL: 7天)
       const cacheKey = userId
@@ -77,11 +89,13 @@ export class ReadHistoryService {
     }
 
     // 检查数据库
-    const where = userId
-      ? { userId_newsId: { userId, newsId } }
-      : { sessionId_newsId: { sessionId, newsId } };
-
-    const readHistory = await this.prisma.readHistory.findUnique({ where });
+    const readHistory = userId
+      ? await this.prisma.readHistory.findUnique({
+          where: { userId_newsId: { userId, newsId } },
+        })
+      : await this.prisma.readHistory.findUnique({
+          where: { sessionId_newsId: { sessionId, newsId } },
+        });
     if (readHistory) {
       // 回写到 Redis
       await this.redis.set(cacheKey, JSON.stringify(readHistory), 604800);
