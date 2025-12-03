@@ -34,75 +34,91 @@ export async function fetchNewsFromAPI(params?: {
     const url = `${API_BASE_URL}/news?${queryParams.toString()}`;
     console.log('🌐 Fetching news from API:', url);
 
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+    // 创建 AbortController 用于超时控制
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30秒超时
 
-    if (!response.ok) {
-      throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      if (!data.success || !data.data?.items) {
+        throw new Error('Invalid API response format');
+      }
+
+      console.log(`✅ Fetched ${data.data.items.length} news items from API (Page ${data.data.pagination.page}/${data.data.pagination.totalPages})`);
+
+      // 映射后端枚举值到前端枚举值
+      const categoryMap: Record<string, NewsCategory> = {
+        'ai': NewsCategory.AI,
+        'hardware': NewsCategory.HARDWARE,
+        'software': NewsCategory.SOFTWARE,
+        'research': NewsCategory.RESEARCH,
+        'business': NewsCategory.BUSINESS,
+        'product': NewsCategory.SOFTWARE,
+        'finance': NewsCategory.BUSINESS,
+        'policy': NewsCategory.RESEARCH,
+        'ethics': NewsCategory.RESEARCH,
+        'robotics': NewsCategory.HARDWARE,
+        'lifestyle': NewsCategory.SOFTWARE,
+        'entertainment': NewsCategory.SOFTWARE,
+        'application': NewsCategory.SOFTWARE,
+        'meme': NewsCategory.SOFTWARE,
+        'other': NewsCategory.AI,
+      };
+
+      const regionMap: Record<string, Region> = {
+        'global': Region.GLOBAL,
+        'north_america': Region.NORTH_AMERICA,
+        'europe': Region.EUROPE,
+        'asia': Region.ASIA,
+        'other': Region.GLOBAL,
+      };
+
+      // 转换后端数据格式到前端格式
+      const items = data.data.items.map((item: any) => ({
+        id: item.id,
+        title: item.title,
+        titleCn: item.titleCn,
+        summary: item.summary,
+        summaryCn: item.summaryCn,
+        category: categoryMap[item.category?.toLowerCase()] || NewsCategory.AI,
+        region: regionMap[item.region?.toLowerCase()] || Region.GLOBAL,
+        impact: item.impactScore,
+        timestamp: item.publishedAt,
+        source: item.source || 'Unknown',
+        url: item.sourceUrl || '',
+        isTrending: item.isTrending,
+        tags: item.tags || [],
+        whyItMatters: item.whyItMatters,
+        whyItMattersCn: item.whyItMattersCn,
+      }));
+
+      return {
+        items,
+        pagination: data.data.pagination,
+      };
+    } catch (fetchError: any) {
+      clearTimeout(timeoutId);
+
+      if (fetchError.name === 'AbortError') {
+        throw new Error('Request timeout: Server took too long to respond (30s)');
+      }
+      throw fetchError;
     }
-
-    const data = await response.json();
-
-    if (!data.success || !data.data?.items) {
-      throw new Error('Invalid API response format');
-    }
-
-    console.log(`✅ Fetched ${data.data.items.length} news items from API (Page ${data.data.pagination.page}/${data.data.pagination.totalPages})`);
-
-    // 映射后端枚举值到前端枚举值
-    const categoryMap: Record<string, NewsCategory> = {
-      'ai': NewsCategory.AI,
-      'hardware': NewsCategory.HARDWARE,
-      'software': NewsCategory.SOFTWARE,
-      'research': NewsCategory.RESEARCH,
-      'business': NewsCategory.BUSINESS,
-      'product': NewsCategory.SOFTWARE,
-      'finance': NewsCategory.BUSINESS,
-      'policy': NewsCategory.RESEARCH,
-      'ethics': NewsCategory.RESEARCH,
-      'robotics': NewsCategory.HARDWARE,
-      'lifestyle': NewsCategory.SOFTWARE,
-      'entertainment': NewsCategory.SOFTWARE,
-      'application': NewsCategory.SOFTWARE,
-      'meme': NewsCategory.SOFTWARE,
-      'other': NewsCategory.AI,
-    };
-
-    const regionMap: Record<string, Region> = {
-      'global': Region.GLOBAL,
-      'north_america': Region.NORTH_AMERICA,
-      'europe': Region.EUROPE,
-      'asia': Region.ASIA,
-      'other': Region.GLOBAL,
-    };
-
-    // 转换后端数据格式到前端格式
-    const items = data.data.items.map((item: any) => ({
-      id: item.id,
-      title: item.title,
-      titleCn: item.titleCn,
-      summary: item.summary,
-      summaryCn: item.summaryCn,
-      category: categoryMap[item.category?.toLowerCase()] || NewsCategory.AI,
-      region: regionMap[item.region?.toLowerCase()] || Region.GLOBAL,
-      impact: item.impactScore,
-      timestamp: item.publishedAt,
-      source: item.source || 'Unknown',
-      url: item.sourceUrl || '',
-      isTrending: item.isTrending,
-      tags: item.tags || [],
-      whyItMatters: item.whyItMatters,
-      whyItMattersCn: item.whyItMattersCn,
-    }));
-
-    return {
-      items,
-      pagination: data.data.pagination,
-    };
   } catch (error: any) {
     console.error('❌ Error fetching news from API:', error);
     throw error;
@@ -117,32 +133,49 @@ export async function fetchTrendingNews(limit: number = 10): Promise<NewsItem[]>
     const url = `${API_BASE_URL}/news/trending/list?limit=${limit}`;
     console.log('🔥 Fetching trending news from API:', url);
 
-    const response = await fetch(url);
+    // 创建 AbortController 用于超时控制
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30秒超时
 
-    if (!response.ok) {
-      throw new Error(`API request failed: ${response.status}`);
+    try {
+      const response = await fetch(url, {
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (!data.success || !data.data) {
+        throw new Error('Invalid API response format');
+      }
+
+      console.log(`✅ Fetched ${data.data.length} trending items`);
+
+      return data.data.map((item: any) => ({
+        id: item.id,
+        title: item.title,
+        summary: item.summary,
+        category: item.category as NewsCategory,
+        region: item.region as Region,
+        impact: item.impactScore,
+        timestamp: item.publishedAt,
+        source: item.source || 'Unknown',
+        url: '',
+        tags: item.tags || [],
+      }));
+    } catch (fetchError: any) {
+      clearTimeout(timeoutId);
+
+      if (fetchError.name === 'AbortError') {
+        throw new Error('Request timeout: Server took too long to respond (30s)');
+      }
+      throw fetchError;
     }
-
-    const data = await response.json();
-
-    if (!data.success || !data.data) {
-      throw new Error('Invalid API response format');
-    }
-
-    console.log(`✅ Fetched ${data.data.length} trending items`);
-
-    return data.data.map((item: any) => ({
-      id: item.id,
-      title: item.title,
-      summary: item.summary,
-      category: item.category as NewsCategory,
-      region: item.region as Region,
-      impact: item.impactScore,
-      timestamp: item.publishedAt,
-      source: item.source || 'Unknown',
-      url: '',
-      tags: item.tags || [],
-    }));
   } catch (error: any) {
     console.error('❌ Error fetching trending news:', error);
     throw error;
