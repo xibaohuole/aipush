@@ -7,6 +7,7 @@ import {
   Query,
   ParseIntPipe,
   DefaultValuePipe,
+  NotFoundException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { PrismaService } from '../../../common/prisma/prisma.service';
@@ -305,13 +306,7 @@ export class NewsController {
     });
 
     if (!news || news.deletedAt) {
-      return {
-        success: false,
-        error: {
-          code: 'NEWS_NOT_FOUND',
-          message: 'News not found',
-        },
-      };
+      throw new NotFoundException('News not found');
     }
 
     // 增加浏览次数

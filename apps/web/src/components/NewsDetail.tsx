@@ -43,13 +43,13 @@ const NewsDetail: React.FC<NewsDetailProps> = ({
 
         const result = await response.json();
 
-        // 检查是否是错误响应
-        if (result.success === false) {
+        // TransformInterceptor 会将响应包装为 {success: true, data: {...}}
+        if (!result.success) {
           throw new Error(result.error?.message || 'News not found');
         }
 
-        // 后端直接返回数据对象（不包装在 data 中）
-        const data = result;
+        // 从包装的响应中提取实际数据
+        const data = result.data;
 
         if (!data || !data.id) {
           throw new Error('Invalid news data');
