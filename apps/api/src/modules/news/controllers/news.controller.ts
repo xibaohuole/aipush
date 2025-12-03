@@ -46,6 +46,26 @@ export class NewsController {
     @Query('region') region?: string,
     @Query('search') search?: string,
   ) {
+    // 快速检查：如果数据库完全为空，返回特殊状态
+    const quickCount = await this.prisma.news.count({
+      where: { deletedAt: null, isApproved: true },
+      take: 1,
+    });
+
+    if (quickCount === 0) {
+      return {
+        items: [],
+        pagination: {
+          page: 1,
+          limit,
+          total: 0,
+          totalPages: 0,
+        },
+        status: 'initializing',
+        message: 'News collection is in progress. Please wait a moment and refresh.',
+      };
+    }
+
     // 生成缓存键（包含所有查询参数）
     const cacheKey = `news:list:p${page}:l${limit}:c${category || 'all'}:r${region || 'all'}:s${search || 'none'}`;
 

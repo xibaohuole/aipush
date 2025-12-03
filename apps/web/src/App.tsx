@@ -44,6 +44,8 @@ const App: React.FC = () => {
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(false);
+  const [initializingMessage, setInitializingMessage] = useState('');
 
   // 无限滚动状态
   const [currentPage, setCurrentPage] = useState(1);
@@ -104,11 +106,15 @@ const App: React.FC = () => {
 
   // 加载初始数据
   useEffect(() => {
-    const loadData = async () => {
-      setIsProcessing(true);
-      setCurrentPage(1);
-      setNewsItems([]);
-      setHasMore(true);
+    let pollingInterval: NodeJS.Timeout | null = null;
+
+    const loadData = async (isRetry: boolean = false) => {
+      if (!isRetry) {
+        setIsProcessing(true);
+        setCurrentPage(1);
+        setNewsItems([]);
+        setHasMore(true);
+      }
 
       try {
         console.log('🌐 Fetching initial news from backend API...');
@@ -120,25 +126,67 @@ const App: React.FC = () => {
           search: searchQuery || undefined,
         });
 
+        // 检查是否正在初始化
+        if ((response as any).status === 'initializing') {
+          setIsInitializing(true);
+          setInitializingMessage((response as any).message || 'Collecting news... This may take a few minutes.');
+          setIsProcessing(false);
+
+          // 启动轮询，每10秒重试一次
+          if (!pollingInterval) {
+            console.log('⏳ News collection in progress, starting polling...');
+            pollingInterval = setInterval(() => {
+              loadData(true);
+            }, 10000);
+          }
+          return;
+        }
+
+        // 成功加载，停止轮询
+        if (pollingInterval) {
+          clearInterval(pollingInterval);
+          pollingInterval = null;
+        }
+        setIsInitializing(false);
+        setInitializingMessage('');
+
         setNewsItems(response.items);
         setHasMore(response.pagination.page < response.pagination.totalPages);
         console.log('✅ Successfully loaded news from API');
       } catch (apiError) {
         console.warn('⚠️ API failed, falling back to GLM direct call:', apiError);
 
+        // 停止轮询
+        if (pollingInterval) {
+          clearInterval(pollingInterval);
+          pollingInterval = null;
+        }
+
         try {
           const items = await fetchRealtimeNews();
           setNewsItems(items);
           setHasMore(false);
+          setIsInitializing(false);
           console.log('✅ Successfully loaded news from GLM fallback');
         } catch (glmError) {
           console.error('❌ Both API and GLM failed:', glmError);
+          setIsInitializing(false);
         }
       } finally {
-        setIsProcessing(false);
+        if (!isInitializing) {
+          setIsProcessing(false);
+        }
       }
     };
+
     loadData();
+
+    // 清理函数
+    return () => {
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+      }
+    };
   }, [selectedCategory, selectedRegion, searchQuery]);
 
   // Save bookmarks whenever they change
@@ -534,11 +582,30 @@ const App: React.FC = () => {
                 {/* Dashboard Statistics */}
                 {newsItems.length > 0 && <DashboardStats newsItems={filteredNews} />}
 
-                {newsItems.length === 0 && !isProcessing ? (
+                {/* 初始化状态提示 */}
+                {isInitializing && (
+                  <div className="text-center py-20">
+                    <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-cyan-500 mx-auto mb-6"></div>
+                    <h3 className="text-xl font-semibold text-white mb-2">
+                      🚀 Collecting Latest News
+                    </h3>
+                    <p className="text-slate-400 mb-4">{initializingMessage}</p>
+                    <p className="text-sm text-slate-500">
+                      We're gathering news from multiple sources and analyzing them with AI.<br />
+                      This usually takes 5-10 minutes on first load.
+                    </p>
+                    <div className="mt-6 flex items-center justify-center gap-2 text-cyan-400">
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      <span className="text-sm">Checking every 10 seconds...</span>
+                    </div>
+                  </div>
+                )}
+
+                {!isInitializing && newsItems.length === 0 && !isProcessing ? (
                   <div className="text-center py-20">
                     <p className="text-slate-500">{t('empty.noNews')}</p>
                   </div>
-                ) : (
+                ) : !isInitializing ? (
                   <div
                     className={`grid gap-6 pb-10 ${viewMode === 'LIST' ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'}`}
                   >

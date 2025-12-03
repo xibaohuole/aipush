@@ -36,7 +36,7 @@ export async function fetchNewsFromAPI(params?: {
 
     // 创建 AbortController 用于超时控制
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30秒超时
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒超时
 
     try {
       const response = await fetch(url, {
@@ -135,7 +135,7 @@ export async function fetchTrendingNews(limit: number = 10): Promise<NewsItem[]>
 
     // 创建 AbortController 用于超时控制
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30秒超时
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒超时
 
     try {
       const response = await fetch(url, {
