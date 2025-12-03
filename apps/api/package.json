@@ -4,7 +4,6 @@
   "description": "AI Pulse Daily Backend API",
   "private": true,
   "scripts": {
-    "postinstall": "prisma generate --schema=./prisma/schema.prisma || echo 'Prisma generate skipped'",
     "dev": "nodemon",
     "dev:debug": "nodemon --inspect",
     "dev:legacy": "npx ts-node src/main.ts",
