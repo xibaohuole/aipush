@@ -174,7 +174,23 @@
       "europe": "Europe",
       "japan": "Japan",
       "global": "Global"
-    }
+    },
+    "whyItMatters": "Why It Matters"
+  },
+  "newsDetail": {
+    "backToNews": "Back to News",
+    "summary": "Summary",
+    "tags": "Tags",
+    "readOriginal": "Read original article",
+    "saved": "Saved",
+    "save": "Save",
+    "share": "Share",
+    "relatedNews": "Related News",
+    "loading": "Loading...",
+    "goBack": "Go Back",
+    "linkCopied": "Link copied to clipboard!",
+    "notFound": "News not found",
+    "trending": "Trending"
   },
   "admin": {
     "appName": "AI Pulse Admin",

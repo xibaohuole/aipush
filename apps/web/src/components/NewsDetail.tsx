@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { ArrowLeft, Bookmark, Share2, ExternalLink, Calendar, Tag, MapPin, TrendingUp, Eye } from 'lucide-react';
 import { Badge } from '@aipush/ui';
 import { useTranslation } from '@aipush/i18n';
 import { NewsItem } from '../types';
+import { markAsRead } from '../services/readHistoryService';
 
 interface NewsDetailProps {
   newsId: string;
@@ -26,6 +27,11 @@ const NewsDetail: React.FC<NewsDetailProps> = ({
   const [relatedNews, setRelatedNews] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // 已读跟踪
+  const readStartTime = useRef<number>(0);
+  const scrollDepthRef = useRef<number>(0);
+  const hasMarkedAsRead = useRef<boolean>(false);
 
   // 获取新闻详情
   useEffect(() => {
@@ -75,6 +81,17 @@ const NewsDetail: React.FC<NewsDetailProps> = ({
         };
 
         setNewsItem(mappedNews);
+
+        // 标记为已读（延迟3秒，确保用户真的在阅读）
+        setTimeout(() => {
+          if (!hasMarkedAsRead.current) {
+            markAsRead(newsId).catch(err => {
+              console.error('Failed to mark as read:', err);
+            });
+            hasMarkedAsRead.current = true;
+            readStartTime.current = Date.now();
+          }
+        }, 3000);
       } catch (err: any) {
         console.error('Error fetching news detail:', err);
         setError(err.message || 'Failed to load news detail');
@@ -132,12 +149,41 @@ const NewsDetail: React.FC<NewsDetailProps> = ({
     fetchRelatedNews();
   }, [newsItem, newsId]);
 
+  // 跟踪滚动深度
+  useEffect(() => {
+    const handleScroll = () => {
+      const windowHeight = window.innerHeight;
+      const documentHeight = document.documentElement.scrollHeight;
+      const scrollTop = window.scrollY;
+      const scrolled = (scrollTop + windowHeight) / documentHeight;
+      const depth = Math.round(scrolled * 100);
+
+      if (depth > scrollDepthRef.current) {
+        scrollDepthRef.current = depth;
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+
+    // 在组件卸载时更新阅读时长和滚动深度
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+
+      if (hasMarkedAsRead.current && readStartTime.current > 0) {
+        const readDuration = Math.round((Date.now() - readStartTime.current) / 1000);
+        markAsRead(newsId, undefined, readDuration, scrollDepthRef.current).catch(err => {
+          console.error('Failed to update read stats:', err);
+        });
+      }
+    };
+  }, [newsId]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-          <p className="text-gray-300">Loading...</p>
+          <p className="text-gray-300">{t('newsDetail.loading')}</p>
         </div>
       </div>
     );
@@ -147,13 +193,13 @@ const NewsDetail: React.FC<NewsDetailProps> = ({
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white flex items-center justify-center">
         <div className="text-center">
-          <p className="text-red-400 mb-4">{error || 'News not found'}</p>
+          <p className="text-red-400 mb-4">{error || t('newsDetail.notFound')}</p>
           <button
             onClick={onBack}
             className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg transition"
           >
             <ArrowLeft className="w-4 h-4 inline mr-2" />
-            Go Back
+            {t('newsDetail.goBack')}
           </button>
         </div>
       </div>
@@ -200,7 +246,7 @@ const NewsDetail: React.FC<NewsDetailProps> = ({
   const copyToClipboard = () => {
     const url = newsItem.url || window.location.href;
     navigator.clipboard.writeText(url).then(() => {
-      alert('Link copied to clipboard!');
+      alert(t('newsDetail.linkCopied'));
     });
   };
 
@@ -213,7 +259,7 @@ const NewsDetail: React.FC<NewsDetailProps> = ({
           className="mb-6 flex items-center gap-2 text-gray-300 hover:text-white transition"
         >
           <ArrowLeft className="w-5 h-5" />
-          <span>Back to News</span>
+          <span>{t('newsDetail.backToNews')}</span>
         </button>
 
         {/* 新闻主体 */}
@@ -233,7 +279,7 @@ const NewsDetail: React.FC<NewsDetailProps> = ({
             </Badge>
             {newsItem.isTrending && (
               <Badge variant="warning" size="sm">
-                🔥 Trending
+                🔥 {t('newsDetail.trending')}
               </Badge>
             )}
           </div>
@@ -257,7 +303,7 @@ const NewsDetail: React.FC<NewsDetailProps> = ({
 
           {/* 摘要 */}
           <div className="mb-6">
-            <h2 className="text-xl font-semibold text-gray-200 mb-3">Summary</h2>
+            <h2 className="text-xl font-semibold text-gray-200 mb-3">{t('newsDetail.summary')}</h2>
             <p className="text-lg text-gray-300 leading-relaxed">{displaySummary}</p>
           </div>
 
@@ -276,7 +322,7 @@ const NewsDetail: React.FC<NewsDetailProps> = ({
             <div className="mb-6">
               <h3 className="text-sm font-semibold text-gray-400 mb-2 flex items-center gap-2">
                 <Tag className="w-4 h-4" />
-                Tags
+                {t('newsDetail.tags')}
               </h3>
               <div className="flex flex-wrap gap-2">
                 {newsItem.tags.map((tag, index) => (
@@ -301,7 +347,7 @@ const NewsDetail: React.FC<NewsDetailProps> = ({
                 className="inline-flex items-center gap-2 text-blue-400 hover:text-blue-300 transition"
               >
                 <ExternalLink className="w-4 h-4" />
-                <span>Read original article</span>
+                <span>{t('newsDetail.readOriginal')}</span>
               </a>
             </div>
           )}
@@ -317,14 +363,14 @@ const NewsDetail: React.FC<NewsDetailProps> = ({
               }`}
             >
               <Bookmark className="w-5 h-5" fill={isBookmarked ? 'currentColor' : 'none'} />
-              <span>{isBookmarked ? 'Saved' : 'Save'}</span>
+              <span>{isBookmarked ? t('newsDetail.saved') : t('newsDetail.save')}</span>
             </button>
             <button
               onClick={handleShare}
               className="flex-1 px-4 py-3 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 transition flex items-center justify-center gap-2 border border-white/10"
             >
               <Share2 className="w-5 h-5" />
-              <span>Share</span>
+              <span>{t('newsDetail.share')}</span>
             </button>
           </div>
         </article>
@@ -332,7 +378,7 @@ const NewsDetail: React.FC<NewsDetailProps> = ({
         {/* 相关新闻 */}
         {relatedNews.length > 0 && (
           <div>
-            <h2 className="text-2xl font-bold text-white mb-4">Related News</h2>
+            <h2 className="text-2xl font-bold text-white mb-4">{t('newsDetail.relatedNews')}</h2>
             <div className="grid gap-4">
               {relatedNews.map((item) => (
                 <div

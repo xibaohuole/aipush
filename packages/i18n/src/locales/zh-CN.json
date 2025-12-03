@@ -174,7 +174,23 @@
       "europe": "欧洲",
       "japan": "日本",
       "global": "全球"
-    }
+    },
+    "whyItMatters": "为什么重要"
+  },
+  "newsDetail": {
+    "backToNews": "返回新闻列表",
+    "summary": "摘要",
+    "tags": "标签",
+    "readOriginal": "阅读原文",
+    "saved": "已收藏",
+    "save": "收藏",
+    "share": "分享",
+    "relatedNews": "相关新闻",
+    "loading": "加载中...",
+    "goBack": "返回",
+    "linkCopied": "链接已复制到剪贴板！",
+    "notFound": "新闻不存在",
+    "trending": "热门"
   },
   "admin": {
     "appName": "AI 脉搏管理后台",
