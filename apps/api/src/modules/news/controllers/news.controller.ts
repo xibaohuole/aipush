@@ -236,6 +236,50 @@ export class NewsController {
   }
 
   /**
+   * 获取趋势新闻（必须放在 :id 路由之前避免冲突）
+   */
+  @Get('trending/list')
+  @ApiOperation({ summary: '获取趋势新闻' })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  async getTrendingNews(
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+  ) {
+    const items = await this.prisma.news.findMany({
+      where: {
+        deletedAt: null,
+        isApproved: true,
+        isTrending: true,
+      },
+      take: limit,
+      orderBy: [
+        { impactScore: 'desc' },
+        { viewCount: 'desc' },
+        { publishedAt: 'desc' },
+      ],
+      select: {
+        id: true,
+        title: true,
+        titleCn: true,
+        summary: true,
+        summaryCn: true,
+        whyItMatters: true,
+        whyItMattersCn: true,
+        source: true,
+        category: true,
+        region: true,
+        impactScore: true,
+        publishedAt: true,
+        tags: true,
+      },
+    });
+
+    return {
+      success: true,
+      data: items,
+    };
+  }
+
+  /**
    * 获取单个新闻详情（使用动态TTL缓存）
    */
   @Get(':id')
@@ -284,50 +328,6 @@ export class NewsController {
     });
 
     return updatedNews;
-  }
-
-  /**
-   * 获取趋势新闻
-   */
-  @Get('trending/list')
-  @ApiOperation({ summary: '获取趋势新闻' })
-  @ApiQuery({ name: 'limit', required: false, type: Number })
-  async getTrendingNews(
-    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
-  ) {
-    const items = await this.prisma.news.findMany({
-      where: {
-        deletedAt: null,
-        isApproved: true,
-        isTrending: true,
-      },
-      take: limit,
-      orderBy: [
-        { impactScore: 'desc' },
-        { viewCount: 'desc' },
-        { publishedAt: 'desc' },
-      ],
-      select: {
-        id: true,
-        title: true,
-        titleCn: true,
-        summary: true,
-        summaryCn: true,
-        whyItMatters: true,
-        whyItMattersCn: true,
-        source: true,
-        category: true,
-        region: true,
-        impactScore: true,
-        publishedAt: true,
-        tags: true,
-      },
-    });
-
-    return {
-      success: true,
-      data: items,
-    };
   }
 
   /**

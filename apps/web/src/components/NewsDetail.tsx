@@ -41,7 +41,15 @@ const NewsDetail: React.FC<NewsDetailProps> = ({
           throw new Error('Failed to fetch news detail');
         }
 
-        const data = await response.json();
+        const result = await response.json();
+
+        // 检查是否是错误响应
+        if (result.success === false) {
+          throw new Error(result.error?.message || 'News not found');
+        }
+
+        // 后端直接返回数据对象（不包装在 data 中）
+        const data = result;
 
         if (!data || !data.id) {
           throw new Error('Invalid news data');
