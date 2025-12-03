@@ -1,20 +1,86 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { NewsScraperService } from '../services/news-scraper.service';
 import { SourceHealthService } from '../services/source-health.service';
+import { PrismaService } from '../../../common/prisma/prisma.service';
 
 /**
  * 新闻爬取定时任务调度器
  */
 @Injectable()
-export class NewsScraperScheduler {
+export class NewsScraperScheduler implements OnModuleInit {
   private readonly logger = new Logger(NewsScraperScheduler.name);
   private isScrapingInProgress = false;
+  private hasRunInitialScraping = false;
 
   constructor(
     private readonly newsScraperService: NewsScraperService,
     private readonly sourceHealthService: SourceHealthService,
+    private readonly prisma: PrismaService,
   ) {}
+
+  /**
+   * 模块初始化时检查数据库，如果为空则自动执行首次采集
+   */
+  async onModuleInit() {
+    try {
+      // 延迟5秒，等待其他服务完全启动
+      await new Promise(resolve => setTimeout(resolve, 5000));
+
+      this.logger.log('检查数据库新闻数量...');
+
+      const newsCount = await this.prisma.news.count({
+        where: {
+          deletedAt: null,
+          isApproved: true,
+        },
+      });
+
+      this.logger.log(`当前数据库中有 ${newsCount} 条新闻`);
+
+      // 如果新闻数量少于10条，执行首次采集
+      if (newsCount < 10) {
+        this.logger.log('数据库新闻数量不足，开始首次自动采集...');
+
+        // 异步执行，不阻塞应用启动
+        this.runInitialScraping();
+      } else {
+        this.logger.log('数据库已有足够新闻，跳过首次采集');
+      }
+    } catch (error: any) {
+      this.logger.error(
+        `检查数据库或首次采集失败: ${error.message}`,
+        error.stack
+      );
+    }
+  }
+
+  /**
+   * 执行首次采集（异步，不阻塞启动）
+   */
+  private async runInitialScraping() {
+    if (this.hasRunInitialScraping) {
+      return;
+    }
+
+    this.hasRunInitialScraping = true;
+    this.isScrapingInProgress = true;
+
+    try {
+      const stats = await this.newsScraperService.scrapeNews();
+
+      this.logger.log(
+        `首次自动采集完成: ${JSON.stringify(stats)}`
+      );
+    } catch (error: any) {
+      this.logger.error(
+        `首次自动采集失败: ${error.message}`,
+        error.stack
+      );
+    } finally {
+      this.isScrapingInProgress = false;
+    }
+  }
 
   /**
    * 每小时执行一次新闻爬取
