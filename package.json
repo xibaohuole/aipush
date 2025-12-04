@@ -8,7 +8,7 @@
     "packages/*"
   ],
   "scripts": {
-    "prepare": "husky || true",
+    "prepare": "node -e \"if (process.env.NODE_ENV !== 'production') { require('child_process').execSync('husky', {stdio: 'inherit'}) }\" || true",
     "dev": "turbo run dev",
     "build": "turbo run build",
     "lint": "turbo run lint",
