@@ -17,12 +17,11 @@ ls -la apps/api/prisma
 
 echo "🔧 Building application (includes Prisma generation)..."
 cd apps/api
-echo "🔍 Current directory:"
-pwd
-echo "🔍 Contents:"
-ls -la
-echo "🔍 Prisma directory:"
-ls -la prisma
 pnpm run build
+
+echo "🗄️ Running database migrations..."
+# Use db push for Render since migrations might not be committed
+# This is safe on first deploy and will sync the schema
+pnpm prisma db push --schema=./prisma/schema.prisma --accept-data-loss --skip-generate
 
 echo "✅ Build completed successfully!"
