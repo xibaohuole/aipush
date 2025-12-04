@@ -4,8 +4,14 @@ set -e
 echo "📦 Installing pnpm..."
 npm install -g pnpm
 
-echo "📦 Installing dependencies..."
-pnpm install
+echo "🔍 Verifying schema.prisma before install..."
+pwd
+ls -la apps/api/prisma/
+cat apps/api/prisma/schema.prisma | head -20
+
+echo "📦 Installing dependencies (will skip Prisma postinstall)..."
+# Skip Prisma's postinstall to avoid path issues, we'll generate manually
+PRISMA_SKIP_POSTINSTALL_GENERATE=1 pnpm install
 
 echo "🔍 Debug: Checking project structure..."
 pwd
