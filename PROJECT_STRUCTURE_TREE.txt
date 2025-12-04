@@ -1,0 +1,245 @@
+ai-pulse-daily-monorepo/
+│
+├─── APPS (应用程序)
+│   │
+│   ├─── api/                          # NestJS后端应用
+│   │    ├─── src/
+│   │    │    ├─── main.ts              # 启动入口 (NestJS factory)
+│   │    │    ├─── app.module.ts        # 主模块 (11个feature module)
+│   │    │    ├─── config/              # 配置文件
+│   │    │    ├─── common/              # 公共功能
+│   │    │    │    ├─── prisma/         # ORM
+│   │    │    │    ├─── redis/          # 缓存
+│   │    │    │    ├─── filters/        # 异常处理
+│   │    │    │    ├─── interceptors/   # 日志&转换
+│   │    │    │    └─── health/         # 健康检查
+│   │    │    └─── modules/             # 功能模块
+│   │    │         ├─── news/           # ✓ 已实现 (最完整)
+│   │    │         │    ├─── controllers/
+│   │    │         │    │    ├─── news.controller.ts
+│   │    │         │    │    ├─── bookmark.controller.ts
+│   │    │         │    │    ├─── read-history.controller.ts
+│   │    │         │    │    └─── news-scraper.controller.ts
+│   │    │         │    ├─── services/
+│   │    │         │    │    ├─── ai-analyzer.service.ts
+│   │    │         │    │    ├─── news-scraper.service.ts
+│   │    │         │    │    ├─── rss-parser.service.ts
+│   │    │         │    │    ├─── bookmark.service.ts
+│   │    │         │    │    └─── read-history.service.ts
+│   │    │         │    ├─── schedulers/ (定时任务)
+│   │    │         │    └─── config/
+│   │    │         ├─── settings/       # ✓ 已实现
+│   │    │         │    ├─── settings.controller.ts
+│   │    │         │    ├─── settings.service.ts
+│   │    │         │    └─── dto/
+│   │    │         ├─── auth/           # ⚠ 仅框架 (需实现)
+│   │    │         │    └─── auth.module.ts
+│   │    │         ├─── users/          # ⚠ 仅框架 (需实现)
+│   │    │         │    └─── users.module.ts
+│   │    │         ├─── bookmarks/      # ⚠ 空模块
+│   │    │         ├─── comments/       # ⚠ 空模块
+│   │    │         ├─── daily-summaries/# ⚠ 空模块
+│   │    │         ├─── notifications/  # ⚠ 空模块
+│   │    │         └─── analytics/      # ⚠ 空模块
+│   │    ├─── prisma/
+│   │    │    ├─── schema.prisma        # 数据库模型定义 (20+ models)
+│   │    │    └─── migrations/
+│   │    ├─── package.json
+│   │    └─── tsconfig.json
+│   │
+│   ├─── web/                           # React前端应用
+│   │    ├─── src/
+│   │    │    ├─── App.tsx              # 主应用组件 (27802字节)
+│   │    │    ├─── index.tsx
+│   │    │    ├─── index.css
+│   │    │    ├─── types.ts             # 类型定义
+│   │    │    ├─── constants.ts
+│   │    │    ├─── components/
+│   │    │    │    ├─── NewsCard.tsx    # 核心卡片组件 (最新版)
+│   │    │    │    ├─── NewsDetail.tsx
+│   │    │    │    ├─── DailyBrief.tsx
+│   │    │    │    ├─── DashboardStats.tsx
+│   │    │    │    ├─── TrendingList.tsx
+│   │    │    │    ├─── Sidebar.tsx
+│   │    │    │    ├─── Settings.tsx
+│   │    │    │    ├─── AddNewsModal.tsx
+│   │    │    │    └─── Pagination.tsx
+│   │    │    ├─── services/
+│   │    │    │    ├─── geminiService.ts
+│   │    │    │    └─── newsService.ts
+│   │    │    └─── utils/
+│   │    │         └─── localStorage.ts
+│   │    ├─── vite.config.ts
+│   │    ├─── tsconfig.json
+│   │    ├─── package.json
+│   │    └─── node_modules/
+│   │
+│   └─── admin/                         # 管理后台应用
+│        ├─── src/
+│        │    └─── components/layout/
+│        │         ├─── Sidebar.tsx
+│        │         └─── Header.tsx
+│        ├─── vite.config.ts
+│        └─── package.json
+│
+├─── PACKAGES (共享包)
+│   │
+│   ├─── ui/                            # UI组件库
+│   │    └─── src/components/
+│   │         ├─── Card.tsx             # 基础卡片组件
+│   │         │    ├─── Card
+│   │         │    ├─── CardHeader
+│   │         │    ├─── CardContent
+│   │         │    └─── CardFooter
+│   │         ├─── Button.tsx
+│   │         ├─── Input.tsx
+│   │         ├─── Badge.tsx
+│   │         ├─── Modal.tsx
+│   │         ├─── Spinner.tsx
+│   │         ├─── Toast.tsx
+│   │         └─── ToastContainer.tsx
+│   │
+│   ├─── api-client/                   # API客户端
+│   │    └─── src/
+│   │
+│   ├─── types/                        # 共享类型定义
+│   │    └─── src/
+│   │
+│   ├─── utils/                        # 工具函数库
+│   │    └─── src/
+│   │
+│   ├─── i18n/                         # 国际化
+│   │    └─── src/
+│   │
+│   └─── config/                       # 共享配置
+│        └─── src/
+│
+├─── DATABASE
+│   └─── prisma/
+│        └─── schema.prisma            # 备用Schema文件
+│
+├─── COMPONENTS (根目录旧版本)
+│   ├─── NewsCard.tsx                  # 旧版卡片组件
+│   ├─── DailyBrief.tsx
+│   ├─── TrendingList.tsx
+│   ├─── AddNewsModal.tsx
+│   ├─── Settings.tsx
+│   └─── Sidebar.tsx
+│
+├─── .husky/                           # Git Hooks
+├─── .github/                          # GitHub配置
+├─── .vscode/                          # VSCode配置
+├─── .turbo/                           # Turbo缓存
+├─── .gitignore
+├─── .env
+├─── .env.example
+├─── docker-compose.yml                # Docker配置
+├─── DOCKER.md
+├─── Dockerfile
+├─── package.json                      # Monorepo配置 (Turborepo)
+├─── pnpm-workspace.yaml
+├─── tsconfig.json
+├─── README.md
+├─── DEPLOYMENT.md
+├─── DATABASE_MIGRATION_GUIDE.md
+├─── PROJECT_STRUCTURE_ANALYSIS.md     # 本文件所指的分析文档
+└─── scripts/
+     └─── diagnose-render.js
+
+===============================================
+数据库模型关系图
+===============================================
+
+User (用户)
+├── UserPreferences (偏好设置)
+├── Bookmark[]
+├── ReadHistory[]
+├── Comment[]
+├── CommentLike[]
+├── Share[]
+├── UserActivity[]
+├── Notification[]
+├── ModeratorAction[]
+├── RefreshToken[]
+├── ApiKey[]
+└── News[] (submittedNews)
+
+News (新闻)
+├── Bookmark[]
+├── ReadHistory[]
+├── Comment[]
+└── Share[]
+
+Comment (评论)
+├── CommentLike[]
+└── Comment[] (replies)
+
+===============================================
+API路由基础信息
+===============================================
+
+全局配置:
+- 前缀: /api
+- 版本: v1 (URI版本化)
+- Swagger文档: /api/docs
+- 安全: Helmet + CORS
+
+已实现的控制器:
+- GET /api/news (获取新闻列表)
+- GET /api/bookmarks (获取书签)
+- GET /api/read-history (获取阅读历史)
+- POST /api/settings (获取/更新设置)
+
+未实现的模块:
+- /api/auth (认证 - 仅框架)
+- /api/users (用户 - 仅框架)
+- /api/comments (评论 - 空)
+- /api/notifications (通知 - 空)
+
+===============================================
+认证系统状态
+===============================================
+
+数据库支持: ✓ 完整
+- User表: passwordHash, emailVerified, role, lastLoginAt
+- RefreshToken表: JWT刷新令牌管理
+- ApiKey表: API密钥认证
+
+实现状态: ⚠ 未实现
+- 登录端点: 需要实现
+- 注册端点: 需要实现
+- JWT守卫: 需要实现
+- 权限控制: 需要实现
+- OAuth: 未计划
+
+文件位置: /apps/api/src/modules/auth/auth.module.ts
+
+===============================================
+卡片组件信息
+===============================================
+
+当前版本:
+位置: /apps/web/src/components/NewsCard.tsx
+大小: 11922字节
+状态: 生产就绪
+
+功能:
+- 两种视图: CARD模式 + LIST模式
+- 翻译支持: 多语言翻译
+- 收藏功能: 书签管理
+- 分享功能: Twitter/LinkedIn/Facebook/Email/Link
+- 音频: 播放支持
+- Notion: 保存集成
+- 评论: 固定评论显示
+- AI: 提问功能
+
+基础组件:
+位置: /packages/ui/src/components/Card.tsx
+变体: default | bordered | elevated
+子组件: Card, CardHeader, CardContent, CardFooter
+
+旧版本:
+位置: /components/NewsCard.tsx
+大小: 206行
+状态: 过时
+

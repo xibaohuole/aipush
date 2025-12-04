@@ -9,9 +9,11 @@ import TrendingList from './components/TrendingList';
 import AddNewsModal from './components/AddNewsModal';
 import DashboardStats from './components/DashboardStats';
 import NewsDetail from './components/NewsDetail';
+import ReadHistory from './components/ReadHistory';
 import { ViewState, NewsItem, DailySummary, NewsCategory, Region, ViewMode } from './types';
 import { fetchRealtimeNews, generateDailyBriefing, askAI } from './services/geminiService';
 import { fetchNewsFromAPI } from './services/newsService';
+import { markAsRead, checkMultipleReadStatus } from './services/readHistoryService';
 import {
   getBookmarks,
   saveBookmarks,
@@ -32,6 +34,7 @@ import {
   Send,
   Zap,
   FileText,
+  Eye,
 } from 'lucide-react';
 import './index.css';
 
@@ -64,6 +67,9 @@ const App: React.FC = () => {
   // 全局翻译状态
   const [globalTranslateEnabled, setGlobalTranslateEnabled] = useState(false);
 
+  // 已读状态检查开关（默认关闭以提高性能）
+  const [enableReadStatusCheck, setEnableReadStatusCheck] = useState(false);
+
   // Modals & Menus
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -78,6 +84,7 @@ const App: React.FC = () => {
 
   // Data
   const [bookmarkedItems, setBookmarkedItems] = useState<Set<string>>(() => getBookmarks());
+  const [readItems, setReadItems] = useState<Record<string, boolean>>({});
   const [timeLeft, setTimeLeft] = useState('');
 
   const profileRef = useRef<HTMLDivElement>(null);
@@ -153,6 +160,18 @@ const App: React.FC = () => {
         setNewsItems(response.items);
         setHasMore(response.pagination.page < response.pagination.totalPages);
         console.log('✅ Successfully loaded news from API');
+
+        // 异步批量检查已读状态（不阻塞页面渲染）
+        if (enableReadStatusCheck && response.items.length > 0) {
+          setTimeout(() => {
+            const newsIds = response.items.map((item: NewsItem) => item.id);
+            checkMultipleReadStatus(newsIds).then((statuses) => {
+              setReadItems(prev => ({ ...prev, ...statuses }));
+            }).catch((err: unknown) => {
+              console.error('Failed to check read status:', err);
+            });
+          }, 100); // 延迟100ms，确保页面先渲染
+        }
       } catch (apiError) {
         console.warn('⚠️ API failed, falling back to GLM direct call:', apiError);
 
@@ -246,6 +265,18 @@ const App: React.FC = () => {
       setCurrentPage(nextPage);
       setHasMore(response.pagination.page < response.pagination.totalPages);
       console.log('✅ More news loaded');
+
+      // 异步批量检查新加载的新闻的已读状态（不阻塞）
+      if (enableReadStatusCheck && response.items.length > 0) {
+        setTimeout(() => {
+          const newsIds = response.items.map((item: NewsItem) => item.id);
+          checkMultipleReadStatus(newsIds).then((statuses) => {
+            setReadItems(prev => ({ ...prev, ...statuses }));
+          }).catch((err: unknown) => {
+            console.error('Failed to check read status:', err);
+          });
+        }, 100); // 延迟100ms
+      }
     } catch (error) {
       console.error('❌ Failed to load more:', error);
     } finally {
@@ -333,6 +364,15 @@ const App: React.FC = () => {
     setSelectedNewsId(newsId);
     setCurrentView(ViewState.NEWS_DETAIL);
     window.scrollTo(0, 0);
+
+    // 记录已读状态
+    markAsRead(newsId).then(() => {
+      // 更新本地已读状态
+      setReadItems(prev => ({ ...prev, [newsId]: true }));
+    }).catch((error) => {
+      console.error('Failed to mark as read:', error);
+      // 静默失败，不影响用户体验
+    });
   };
 
   // 从详情页返回
@@ -565,6 +605,28 @@ const App: React.FC = () => {
                     </Button>
 
                     <Button
+                      onClick={() => {
+                        const newValue = !enableReadStatusCheck;
+                        setEnableReadStatusCheck(newValue);
+                        // 如果开启，立即检查当前页面的已读状态
+                        if (newValue && newsItems.length > 0) {
+                          const newsIds = newsItems.map((item: NewsItem) => item.id);
+                          checkMultipleReadStatus(newsIds).then((statuses) => {
+                            setReadItems(statuses);
+                          }).catch((err: unknown) => {
+                            console.error('Failed to check read status:', err);
+                          });
+                        }
+                      }}
+                      variant={enableReadStatusCheck ? "success" : "secondary"}
+                      size="sm"
+                      title="开启后会显示已读标记，但可能影响加载速度"
+                    >
+                      <Eye className="w-4 h-4" />
+                      {enableReadStatusCheck ? '已读√' : '已读'}
+                    </Button>
+
+                    <Button
                       onClick={handleRefresh}
                       disabled={isProcessing}
                       variant="primary"
@@ -620,6 +682,7 @@ const App: React.FC = () => {
                           item={item}
                           targetLanguage={targetLanguage}
                           isBookmarked={bookmarkedItems.has(item.id)}
+                          isRead={readItems[item.id] || false}
                           viewMode={viewMode}
                           globalTranslateEnabled={globalTranslateEnabled}
                           onToggleBookmark={(id) =>
@@ -640,7 +703,7 @@ const App: React.FC = () => {
                         <div key={i} className="glass-card rounded-xl p-5 h-64 animate-pulse"></div>
                       ))}
                   </div>
-                )}
+                ) : null}
 
                 {/* 加载更多指示器 */}
                 <div ref={loadMoreRef} className="py-8 text-center">
@@ -675,6 +738,9 @@ const App: React.FC = () => {
                   });
                 }}
               />
+            )}
+            {currentView === ViewState.READ_HISTORY && (
+              <ReadHistory onNavigateToNews={navigateToNewsDetail} />
             )}
             {currentView === ViewState.SETTINGS && (
               <Settings

@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, TrendingUp, FileText, Settings as SettingsIcon } from 'lucide-react';
+import { LayoutDashboard, TrendingUp, FileText, Settings as SettingsIcon, Clock } from 'lucide-react';
 import { useTranslation } from '@aipush/i18n';
 import { ViewState } from '../types';
 
@@ -16,6 +16,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setView }) => {
     { view: ViewState.DASHBOARD, label: t('nav.dashboard'), icon: LayoutDashboard },
     { view: ViewState.TRENDING, label: t('nav.trending'), icon: TrendingUp },
     { view: ViewState.DAILY_BRIEF, label: t('nav.dailyBrief'), icon: FileText },
+    { view: ViewState.READ_HISTORY, label: '阅读历史', icon: Clock },
     { view: ViewState.SETTINGS, label: t('nav.settings'), icon: SettingsIcon },
   ];
 

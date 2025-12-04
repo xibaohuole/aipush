@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bookmark, Share2, Zap, Search } from 'lucide-react';
+import { Bookmark, Share2, Zap, Search, CheckCircle } from 'lucide-react';
 import { Badge } from '@aipush/ui';
 import { useTranslation } from '@aipush/i18n';
 import { NewsItem, ViewMode } from '../types';
@@ -8,6 +8,7 @@ interface NewsCardProps {
   item: NewsItem;
   targetLanguage: string;
   isBookmarked: boolean;
+  isRead?: boolean; // 是否已读
   viewMode: ViewMode;
   onToggleBookmark: (id: string) => void;
   onAsk: (item: NewsItem) => void;
@@ -18,6 +19,7 @@ interface NewsCardProps {
 const NewsCard: React.FC<NewsCardProps> = ({
   item,
   isBookmarked,
+  isRead = false,
   viewMode,
   onToggleBookmark,
   onAsk,
@@ -74,7 +76,7 @@ const NewsCard: React.FC<NewsCardProps> = ({
 
   if (viewMode === 'LIST') {
     return (
-      <div className="bg-white/5 border border-white/10 rounded-lg p-4 hover:bg-white/10 transition-all">
+      <div className={`bg-white/5 border border-white/10 rounded-lg p-4 hover:bg-white/10 transition-all ${isRead ? 'opacity-60' : ''}`}>
         <div className="flex items-start justify-between gap-4">
           <div
             className="flex-1 min-w-0 cursor-pointer"
@@ -87,11 +89,17 @@ const NewsCard: React.FC<NewsCardProps> = ({
               <Badge variant="default" size="sm">
                 {item.region}
               </Badge>
+              {isRead && (
+                <Badge variant="success" size="sm" className="flex items-center gap-1">
+                  <CheckCircle className="w-3 h-3" />
+                  已读
+                </Badge>
+              )}
               <span className="text-xs text-gray-400">
                 {new Date(item.timestamp).toLocaleTimeString()}
               </span>
             </div>
-            <h3 className="text-lg font-semibold text-white mb-2">{displayTitle}</h3>
+            <h3 className={`text-lg font-semibold mb-2 ${isRead ? 'text-gray-400' : 'text-white'}`}>{displayTitle}</h3>
             <p className="text-sm text-gray-300 line-clamp-2 mb-2">{displaySummary}</p>
             {displayWhyItMatters && (
               <div className="mb-2 p-2 bg-purple-500/10 border border-purple-500/30 rounded">
@@ -180,7 +188,7 @@ const NewsCard: React.FC<NewsCardProps> = ({
 
   return (
     <div
-      className="bg-white/5 border border-white/10 rounded-lg p-6 hover:bg-white/10 hover:border-white/20 transition-all cursor-pointer"
+      className={`bg-white/5 border border-white/10 rounded-lg p-6 hover:bg-white/10 hover:border-white/20 transition-all cursor-pointer ${isRead ? 'opacity-60' : ''}`}
       onClick={() => onViewDetail && onViewDetail(item.id)}
     >
       <div className="flex items-start justify-between mb-3">
@@ -191,13 +199,19 @@ const NewsCard: React.FC<NewsCardProps> = ({
           <Badge variant="default" size="sm">
             {t('newsCard.impact')}: {item.impact}
           </Badge>
+          {isRead && (
+            <Badge variant="success" size="sm" className="flex items-center gap-1">
+              <CheckCircle className="w-3 h-3" />
+              已读
+            </Badge>
+          )}
         </div>
         <span className="text-xs text-gray-400">
           {new Date(item.timestamp).toLocaleTimeString()}
         </span>
       </div>
 
-      <h3 className="text-xl font-bold text-white mb-3 leading-tight">{displayTitle}</h3>
+      <h3 className={`text-xl font-bold mb-3 leading-tight ${isRead ? 'text-gray-400' : 'text-white'}`}>{displayTitle}</h3>
       <p className="text-sm text-gray-300 mb-3 line-clamp-3">{displaySummary}</p>
 
       {displayWhyItMatters && (
