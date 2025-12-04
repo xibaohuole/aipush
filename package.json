@@ -8,7 +8,6 @@
     "packages/*"
   ],
   "scripts": {
-    "postinstall": "cd apps/api && pnpm prisma:generate",
     "prepare": "husky",
     "dev": "turbo run dev",
     "build": "turbo run build",
