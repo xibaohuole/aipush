@@ -5,8 +5,8 @@ services:
     name: aipush-backend
     runtime: node
     plan: free
-    buildCommand: chmod +x scripts/render-build.sh && ./scripts/render-build.sh
-    startCommand: cd apps/api && node dist/apps/api/src/main
+    buildCommand: chmod +x scripts/render-build.sh && bash scripts/render-build.sh
+    startCommand: cd apps/api && node dist/apps/api/src/main.js
     envVars:
       - key: NODE_ENV
         value: production
