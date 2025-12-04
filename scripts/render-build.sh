@@ -15,7 +15,7 @@ ls -la apps/api
 echo "🔍 Debug: Checking apps/api/prisma..."
 ls -la apps/api/prisma
 
-echo "🔧 Generating Prisma Client..."
+echo "🔧 Building application (includes Prisma generation)..."
 cd apps/api
 echo "🔍 Current directory:"
 pwd
@@ -23,9 +23,6 @@ echo "🔍 Contents:"
 ls -la
 echo "🔍 Prisma directory:"
 ls -la prisma
-prisma generate --schema=./prisma/schema.prisma
-
-echo "🏗️ Building application..."
 pnpm run build
 
 echo "✅ Build completed successfully!"
