@@ -1,8 +1,8 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
-import { NewsScraperService } from '../services/news-scraper.service';
-import { SourceHealthService } from '../services/source-health.service';
-import { PrismaService } from '../../../common/prisma/prisma.service';
+import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
+import { Cron, CronExpression } from "@nestjs/schedule";
+import { NewsScraperService } from "../services/news-scraper.service";
+import { SourceHealthService } from "../services/source-health.service";
+import { PrismaService } from "../../../common/prisma/prisma.service";
 
 /**
  * 新闻爬取定时任务调度器
@@ -25,9 +25,9 @@ export class NewsScraperScheduler implements OnModuleInit {
   async onModuleInit() {
     try {
       // 延迟5秒，等待其他服务完全启动
-      await new Promise(resolve => setTimeout(resolve, 5000));
+      await new Promise((resolve) => setTimeout(resolve, 5000));
 
-      this.logger.log('检查数据库新闻数量...');
+      this.logger.log("检查数据库新闻数量...");
 
       const newsCount = await this.prisma.news.count({
         where: {
@@ -40,17 +40,17 @@ export class NewsScraperScheduler implements OnModuleInit {
 
       // 如果新闻数量少于10条，执行首次采集
       if (newsCount < 10) {
-        this.logger.log('数据库新闻数量不足，开始首次自动采集...');
+        this.logger.log("数据库新闻数量不足，开始首次自动采集...");
 
         // 异步执行，不阻塞应用启动
         this.runInitialScraping();
       } else {
-        this.logger.log('数据库已有足够新闻，跳过首次采集');
+        this.logger.log("数据库已有足够新闻，跳过首次采集");
       }
     } catch (error: any) {
       this.logger.error(
         `检查数据库或首次采集失败: ${error.message}`,
-        error.stack
+        error.stack,
       );
     }
   }
@@ -69,14 +69,9 @@ export class NewsScraperScheduler implements OnModuleInit {
     try {
       const stats = await this.newsScraperService.scrapeNews();
 
-      this.logger.log(
-        `首次自动采集完成: ${JSON.stringify(stats)}`
-      );
+      this.logger.log(`首次自动采集完成: ${JSON.stringify(stats)}`);
     } catch (error: any) {
-      this.logger.error(
-        `首次自动采集失败: ${error.message}`,
-        error.stack
-      );
+      this.logger.error(`首次自动采集失败: ${error.message}`, error.stack);
     } finally {
       this.isScrapingInProgress = false;
     }
@@ -89,24 +84,22 @@ export class NewsScraperScheduler implements OnModuleInit {
   @Cron(CronExpression.EVERY_HOUR)
   async handleHourlyScraping() {
     if (this.isScrapingInProgress) {
-      this.logger.warn('Scraping already in progress, skipping...');
+      this.logger.warn("Scraping already in progress, skipping...");
       return;
     }
 
     this.isScrapingInProgress = true;
 
     try {
-      this.logger.log('Starting scheduled news scraping...');
+      this.logger.log("Starting scheduled news scraping...");
 
       const stats = await this.newsScraperService.scrapeNews();
 
-      this.logger.log(
-        `Scheduled scraping completed: ${JSON.stringify(stats)}`
-      );
+      this.logger.log(`Scheduled scraping completed: ${JSON.stringify(stats)}`);
     } catch (error: any) {
       this.logger.error(
         `Scheduled scraping failed: ${error.message}`,
-        error.stack
+        error.stack,
       );
     } finally {
       this.isScrapingInProgress = false;
@@ -117,18 +110,18 @@ export class NewsScraperScheduler implements OnModuleInit {
    * 每天凌晨3点更新趋势新闻
    * Cron: 0 3 * * * (每天3:00 AM)
    */
-  @Cron('0 3 * * *')
+  @Cron("0 3 * * *")
   async handleDailyTrendingUpdate() {
     try {
-      this.logger.log('Updating trending news...');
+      this.logger.log("Updating trending news...");
 
       await this.newsScraperService.updateTrendingNews();
 
-      this.logger.log('Trending news updated successfully');
+      this.logger.log("Trending news updated successfully");
     } catch (error: any) {
       this.logger.error(
         `Failed to update trending news: ${error.message}`,
-        error.stack
+        error.stack,
       );
     }
   }
@@ -137,10 +130,10 @@ export class NewsScraperScheduler implements OnModuleInit {
    * 每周日凌晨2点清理旧新闻
    * Cron: 0 2 * * 0 (每周日2:00 AM)
    */
-  @Cron('0 2 * * 0')
+  @Cron("0 2 * * 0")
   async handleWeeklyCleanup() {
     try {
-      this.logger.log('Cleaning old news...');
+      this.logger.log("Cleaning old news...");
 
       const deletedCount = await this.newsScraperService.cleanOldNews(30);
 
@@ -148,7 +141,7 @@ export class NewsScraperScheduler implements OnModuleInit {
     } catch (error: any) {
       this.logger.error(
         `Failed to clean old news: ${error.message}`,
-        error.stack
+        error.stack,
       );
     }
   }
@@ -158,13 +151,13 @@ export class NewsScraperScheduler implements OnModuleInit {
    */
   async triggerManualScraping(): Promise<any> {
     if (this.isScrapingInProgress) {
-      throw new Error('Scraping is already in progress');
+      throw new Error("Scraping is already in progress");
     }
 
     this.isScrapingInProgress = true;
 
     try {
-      this.logger.log('Manual scraping triggered');
+      this.logger.log("Manual scraping triggered");
 
       const stats = await this.newsScraperService.scrapeNews();
 
@@ -192,15 +185,15 @@ export class NewsScraperScheduler implements OnModuleInit {
    * 每周一凌晨1点检查RSS源健康状态
    * Cron: 0 1 * * 1 (每周一1:00 AM)
    */
-  @Cron('0 1 * * 1')
+  @Cron("0 1 * * 1")
   async handleWeeklyHealthCheck() {
     try {
-      this.logger.log('开始每周RSS源健康检查...');
+      this.logger.log("开始每周RSS源健康检查...");
 
       const result = await this.sourceHealthService.checkAllSourcesHealth();
 
       this.logger.log(
-        `健康检查完成: ${result.healthy}/${result.total} 健康, ${result.warnings} 个需要关注`
+        `健康检查完成: ${result.healthy}/${result.total} 健康, ${result.warnings} 个需要关注`,
       );
 
       // 如果有需要关注的源，生成报告
@@ -209,10 +202,7 @@ export class NewsScraperScheduler implements OnModuleInit {
         this.logger.warn(`健康报告:\n${report}`);
       }
     } catch (error: any) {
-      this.logger.error(
-        `RSS源健康检查失败: ${error.message}`,
-        error.stack
-      );
+      this.logger.error(`RSS源健康检查失败: ${error.message}`, error.stack);
     }
   }
 
@@ -220,7 +210,7 @@ export class NewsScraperScheduler implements OnModuleInit {
    * 手动触发健康检查（用于测试或管理员操作）
    */
   async triggerHealthCheck(): Promise<any> {
-    this.logger.log('手动触发健康检查');
+    this.logger.log("手动触发健康检查");
     const result = await this.sourceHealthService.checkAllSourcesHealth();
     const report = await this.sourceHealthService.generateHealthReport();
 

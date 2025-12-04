@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty } from "@nestjs/swagger";
 import {
   IsString,
   IsInt,
@@ -8,12 +8,12 @@ import {
   Min,
   Max,
   MaxLength,
-} from 'class-validator';
+} from "class-validator";
 
 export class UpdateSettingsDto {
   @ApiProperty({
-    description: 'Site name',
-    example: 'AI Pulse Daily',
+    description: "Site name",
+    example: "AI Pulse Daily",
     required: false,
   })
   @IsOptional()
@@ -22,8 +22,8 @@ export class UpdateSettingsDto {
   siteName?: string;
 
   @ApiProperty({
-    description: 'Site description',
-    example: 'Your daily AI news aggregation platform',
+    description: "Site description",
+    example: "Your daily AI news aggregation platform",
     required: false,
   })
   @IsOptional()
@@ -32,7 +32,7 @@ export class UpdateSettingsDto {
   siteDescription?: string;
 
   @ApiProperty({
-    description: 'Number of items per page',
+    description: "Number of items per page",
     example: 20,
     minimum: 5,
     maximum: 100,
@@ -45,7 +45,7 @@ export class UpdateSettingsDto {
   itemsPerPage?: number;
 
   @ApiProperty({
-    description: 'Enable comments',
+    description: "Enable comments",
     example: true,
     required: false,
   })
@@ -54,7 +54,7 @@ export class UpdateSettingsDto {
   commentsEnabled?: boolean;
 
   @ApiProperty({
-    description: 'Auto approve comments',
+    description: "Auto approve comments",
     example: false,
     required: false,
   })
@@ -63,8 +63,8 @@ export class UpdateSettingsDto {
   autoApproveComments?: boolean;
 
   @ApiProperty({
-    description: 'GLM API Key',
-    example: 'sk-xxx',
+    description: "GLM API Key",
+    example: "sk-xxx",
     required: false,
   })
   @IsOptional()
@@ -72,8 +72,8 @@ export class UpdateSettingsDto {
   glmApiKey?: string;
 
   @ApiProperty({
-    description: 'API base URL',
-    example: 'http://localhost:4000',
+    description: "API base URL",
+    example: "http://localhost:4000",
     required: false,
   })
   @IsOptional()

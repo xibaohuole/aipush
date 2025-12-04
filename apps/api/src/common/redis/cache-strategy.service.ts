@@ -1,5 +1,5 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { RedisService } from './redis.service';
+import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
+import { RedisService } from "./redis.service";
 
 /**
  * 缓存策略配置
@@ -19,12 +19,11 @@ export interface CacheConfig {
 export class CacheStrategyService implements OnModuleInit {
   private readonly logger = new Logger(CacheStrategyService.name);
   private readonly config: CacheConfig;
-  private readonly memoryCache: Map<string, { value: any; expireAt: number }> = new Map();
+  private readonly memoryCache: Map<string, { value: any; expireAt: number }> =
+    new Map();
   private memoryCleanupInterval: NodeJS.Timeout | null = null;
 
-  constructor(
-    private readonly redisService: RedisService,
-  ) {
+  constructor(private readonly redisService: RedisService) {
     this.config = {
       defaultTTL: 1800, // 30 分钟
       hotTTL: 3600, // 1 小时
@@ -36,7 +35,7 @@ export class CacheStrategyService implements OnModuleInit {
   async onModuleInit() {
     if (this.config.degradeEnabled) {
       this.startMemoryCleanup();
-      this.logger.log('Memory cache fallback enabled');
+      this.logger.log("Memory cache fallback enabled");
     }
   }
 
@@ -58,7 +57,9 @@ export class CacheStrategyService implements OnModuleInit {
           return value;
         }
       } catch (error: any) {
-        this.logger.warn(`Redis get failed, falling back to memory: ${error.message}`);
+        this.logger.warn(
+          `Redis get failed, falling back to memory: ${error.message}`,
+        );
       }
     }
 
@@ -88,7 +89,9 @@ export class CacheStrategyService implements OnModuleInit {
       try {
         success = await this.redisService.set(key, value, effectiveTTL);
         if (success) {
-          this.logger.debug(`Cache set to Redis: ${key} (TTL: ${effectiveTTL}s)`);
+          this.logger.debug(
+            `Cache set to Redis: ${key} (TTL: ${effectiveTTL}s)`,
+          );
         }
       } catch (error: any) {
         this.logger.warn(`Redis set failed: ${error.message}`);
@@ -147,13 +150,15 @@ export class CacheStrategyService implements OnModuleInit {
    * 缓存预热
    * 应用启动时预加载热门数据
    */
-  async warmup(warmupFn: () => Promise<Array<{ key: string; value: any; ttl?: number }>>): Promise<void> {
+  async warmup(
+    warmupFn: () => Promise<Array<{ key: string; value: any; ttl?: number }>>,
+  ): Promise<void> {
     if (!this.config.warmupEnabled) {
-      this.logger.log('Cache warmup is disabled');
+      this.logger.log("Cache warmup is disabled");
       return;
     }
 
-    this.logger.log('Starting cache warmup...');
+    this.logger.log("Starting cache warmup...");
     const startTime = Date.now();
 
     try {
@@ -184,19 +189,27 @@ export class CacheStrategyService implements OnModuleInit {
     items: Array<{ key: string; value: any; ttl?: number }>,
     batchSize: number = 10,
   ): Promise<number> {
-    this.logger.log(`Batch warmup starting: ${items.length} items (batch size: ${batchSize})`);
+    this.logger.log(
+      `Batch warmup starting: ${items.length} items (batch size: ${batchSize})`,
+    );
     let successCount = 0;
 
     // 分批处理，避免一次性操作过多
     for (let i = 0; i < items.length; i += batchSize) {
       const batch = items.slice(i, i + batchSize);
-      const promises = batch.map((item) => this.set(item.key, item.value, item.ttl));
+      const promises = batch.map((item) =>
+        this.set(item.key, item.value, item.ttl),
+      );
       const results = await Promise.allSettled(promises);
 
-      successCount += results.filter((r) => r.status === 'fulfilled' && r.value === true).length;
+      successCount += results.filter(
+        (r) => r.status === "fulfilled" && r.value === true,
+      ).length;
     }
 
-    this.logger.log(`Batch warmup completed: ${successCount}/${items.length} items loaded`);
+    this.logger.log(
+      `Batch warmup completed: ${successCount}/${items.length} items loaded`,
+    );
     return successCount;
   }
 
@@ -239,7 +252,9 @@ export class CacheStrategyService implements OnModuleInit {
       }
 
       if (cleanedCount > 0) {
-        this.logger.debug(`Memory cache cleanup: removed ${cleanedCount} expired items`);
+        this.logger.debug(
+          `Memory cache cleanup: removed ${cleanedCount} expired items`,
+        );
       }
     }, 60000); // 每分钟清理一次
   }

@@ -5,9 +5,9 @@ import {
   HttpException,
   HttpStatus,
   Logger,
-} from '@nestjs/common';
-import { Response } from 'express';
-import type { ApiError } from '@aipush/types';
+} from "@nestjs/common";
+import { Response } from "express";
+import type { ApiError } from "@aipush/types";
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
@@ -19,17 +19,20 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const request = ctx.getRequest();
 
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
-    let message = 'Internal server error';
-    let code = 'INTERNAL_SERVER_ERROR';
+    let message = "Internal server error";
+    let code = "INTERNAL_SERVER_ERROR";
     let details: Record<string, unknown> | undefined;
 
     if (exception instanceof HttpException) {
       status = exception.getStatus();
       const exceptionResponse = exception.getResponse();
 
-      if (typeof exceptionResponse === 'string') {
+      if (typeof exceptionResponse === "string") {
         message = exceptionResponse;
-      } else if (typeof exceptionResponse === 'object' && exceptionResponse !== null) {
+      } else if (
+        typeof exceptionResponse === "object" &&
+        exceptionResponse !== null
+      ) {
         const responseObj = exceptionResponse as any;
         message = responseObj.message || message;
         code = responseObj.code || code;
@@ -52,8 +55,12 @@ export class HttpExceptionFilter implements ExceptionFilter {
     response.status(status).json(errorResponse);
 
     // Ignore common browser requests that don't need logging
-    const ignoredPaths = ['/favicon.ico', '/robots.txt', '/apple-touch-icon.png'];
-    const shouldLog = !ignoredPaths.some(path => request.url === path);
+    const ignoredPaths = [
+      "/favicon.ico",
+      "/robots.txt",
+      "/apple-touch-icon.png",
+    ];
+    const shouldLog = !ignoredPaths.some((path) => request.url === path);
 
     if (shouldLog) {
       this.logger.error(

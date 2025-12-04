@@ -1,7 +1,7 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { CacheStrategyService } from '../../../common/redis/cache-strategy.service';
-import { RedisService } from '../../../common/redis/redis.service';
+import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { CacheStrategyService } from "../../../common/redis/cache-strategy.service";
+import { RedisService } from "../../../common/redis/redis.service";
 
 interface NewsAnalysisResult {
   category: string;
@@ -24,14 +24,15 @@ interface NewsAnalysisResult {
 export class AIAnalyzerService implements OnModuleInit {
   private readonly logger = new Logger(AIAnalyzerService.name);
   private readonly glmApiKey: string;
-  private readonly glmApiUrl = 'https://open.bigmodel.cn/api/paas/v4/chat/completions';
+  private readonly glmApiUrl =
+    "https://open.bigmodel.cn/api/paas/v4/chat/completions";
 
   constructor(
     private configService: ConfigService,
     private cacheStrategy: CacheStrategyService,
     private redisService: RedisService,
   ) {
-    this.glmApiKey = this.configService.get<string>('glm.apiKey') || '';
+    this.glmApiKey = this.configService.get<string>("glm.apiKey") || "";
   }
 
   /**
@@ -49,22 +50,22 @@ export class AIAnalyzerService implements OnModuleInit {
    */
   private async warmupCache() {
     if (!this.glmApiKey) {
-      this.logger.log('GLM API key not configured, skipping cache warmup');
+      this.logger.log("GLM API key not configured, skipping cache warmup");
       return;
     }
 
-    this.logger.log('Starting AI news cache warmup...');
+    this.logger.log("Starting AI news cache warmup...");
 
     try {
       // 生成当前小时的新闻并缓存
       const now = new Date();
-      const dateHour = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}`;
+      const dateHour = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}-${String(now.getHours()).padStart(2, "0")}`;
       const cacheKey = `ai-news:${dateHour}:count-8`;
 
       // 检查缓存是否已存在
       const existingCache = await this.cacheStrategy.get(cacheKey);
       if (existingCache) {
-        this.logger.log('Cache already exists, skipping warmup');
+        this.logger.log("Cache already exists, skipping warmup");
         return;
       }
 
@@ -74,7 +75,9 @@ export class AIAnalyzerService implements OnModuleInit {
       // 使用智能缓存策略存储
       await this.cacheStrategy.set(cacheKey, newsItems, 1800); // 30分钟
 
-      this.logger.log(`Cache warmup completed: ${newsItems.length} items loaded`);
+      this.logger.log(
+        `Cache warmup completed: ${newsItems.length} items loaded`,
+      );
     } catch (error: any) {
       this.logger.warn(`Cache warmup failed: ${error.message}`);
     }
@@ -83,9 +86,13 @@ export class AIAnalyzerService implements OnModuleInit {
   /**
    * 分析新闻文章
    */
-  async analyzeNews(title: string, content: string, sourceCategory?: string): Promise<NewsAnalysisResult> {
+  async analyzeNews(
+    title: string,
+    content: string,
+    sourceCategory?: string,
+  ): Promise<NewsAnalysisResult> {
     if (!this.glmApiKey) {
-      this.logger.warn('GLM API 密钥未配置，使用默认分析值');
+      this.logger.warn("GLM API 密钥未配置，使用默认分析值");
       return this.getDefaultAnalysis(title, content, sourceCategory);
     }
 
@@ -94,12 +101,18 @@ export class AIAnalyzerService implements OnModuleInit {
       const prompt = this.buildAnalysisPrompt(title, content);
       const response = await this.callGLM(prompt);
       const result = this.parseGLMResponse(response, sourceCategory);
-      this.logger.debug(`新闻分析成功: ${title.substring(0, 50)}... -> 类别: ${result.category}, 中文标题: ${result.titleCn ? '已生成' : '未生成'}`);
+      this.logger.debug(
+        `新闻分析成功: ${title.substring(0, 50)}... -> 类别: ${result.category}, 中文标题: ${result.titleCn ? "已生成" : "未生成"}`,
+      );
       return result;
     } catch (error: any) {
-      this.logger.error(`新闻分析失败 [${title.substring(0, 50)}...]: ${error.message}`);
+      this.logger.error(
+        `新闻分析失败 [${title.substring(0, 50)}...]: ${error.message}`,
+      );
       this.logger.debug(`错误详情: ${error.stack || error.toString()}`);
-      this.logger.warn(`使用默认分析降级策略处理: ${title.substring(0, 50)}...`);
+      this.logger.warn(
+        `使用默认分析降级策略处理: ${title.substring(0, 50)}...`,
+      );
       return this.getDefaultAnalysis(title, content, sourceCategory);
     }
   }
@@ -140,20 +153,21 @@ CRITICAL: Your response must start with { and end with }. Do NOT wrap in markdow
         this.logger.debug(`GLM API 调用开始 (第 ${attempt}/${retries} 次尝试)`);
 
         const response = await fetch(this.glmApiUrl, {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${this.glmApiKey}`,
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${this.glmApiKey}`,
           },
           body: JSON.stringify({
-            model: 'glm-4.5-air',
+            model: "glm-4.5-air",
             messages: [
               {
-                role: 'system',
-                content: 'You are a JSON-only API. Always respond with valid JSON objects only, without markdown formatting or explanations.',
+                role: "system",
+                content:
+                  "You are a JSON-only API. Always respond with valid JSON objects only, without markdown formatting or explanations.",
               },
               {
-                role: 'user',
+                role: "user",
                 content: prompt,
               },
             ],
@@ -164,15 +178,21 @@ CRITICAL: Your response must start with { and end with }. Do NOT wrap in markdow
 
         if (!response.ok) {
           const errorText = await response.text();
-          this.logger.error(`GLM API 返回错误状态码 ${response.status}: ${errorText.substring(0, 200)}`);
-          throw new Error(`GLM API 错误 (状态码 ${response.status}): ${errorText.substring(0, 100)}`);
+          this.logger.error(
+            `GLM API 返回错误状态码 ${response.status}: ${errorText.substring(0, 200)}`,
+          );
+          throw new Error(
+            `GLM API 错误 (状态码 ${response.status}): ${errorText.substring(0, 100)}`,
+          );
         }
 
         const data: any = await response.json();
 
         if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-          this.logger.error(`GLM API 响应格式无效: ${JSON.stringify(data).substring(0, 200)}`);
-          throw new Error('GLM API 响应格式无效');
+          this.logger.error(
+            `GLM API 响应格式无效: ${JSON.stringify(data).substring(0, 200)}`,
+          );
+          throw new Error("GLM API 响应格式无效");
         }
 
         this.logger.debug(`GLM API 调用成功 (第 ${attempt} 次尝试)`);
@@ -180,34 +200,39 @@ CRITICAL: Your response must start with { and end with }. Do NOT wrap in markdow
       } catch (error: any) {
         lastError = error;
         this.logger.warn(
-          `GLM API 调用失败 (第 ${attempt}/${retries} 次尝试): ${error.message}`
+          `GLM API 调用失败 (第 ${attempt}/${retries} 次尝试): ${error.message}`,
         );
 
         if (attempt < retries) {
           // 指数退避：等待 1s, 2s, 4s...
           const delay = Math.pow(2, attempt - 1) * 1000;
           this.logger.debug(`等待 ${delay}ms 后重试...`);
-          await new Promise(resolve => setTimeout(resolve, delay));
+          await new Promise((resolve) => setTimeout(resolve, delay));
         }
       }
     }
 
-    this.logger.error(`GLM API 调用失败，已重试 ${retries} 次: ${lastError?.message || '未知错误'}`);
-    throw lastError || new Error('GLM API 调用失败，已达到最大重试次数');
+    this.logger.error(
+      `GLM API 调用失败，已重试 ${retries} 次: ${lastError?.message || "未知错误"}`,
+    );
+    throw lastError || new Error("GLM API 调用失败，已达到最大重试次数");
   }
 
   /**
    * 解析 GLM 响应
    */
-  private parseGLMResponse(response: string, fallbackCategory?: string): NewsAnalysisResult {
+  private parseGLMResponse(
+    response: string,
+    fallbackCategory?: string,
+  ): NewsAnalysisResult {
     try {
       // 清理响应：移除可能的 markdown 代码块
       let cleanedResponse = response.trim();
 
       // 移除 markdown 代码块标记
-      cleanedResponse = cleanedResponse.replace(/^```json\s*/i, '');
-      cleanedResponse = cleanedResponse.replace(/^```\s*/i, '');
-      cleanedResponse = cleanedResponse.replace(/\s*```$/i, '');
+      cleanedResponse = cleanedResponse.replace(/^```json\s*/i, "");
+      cleanedResponse = cleanedResponse.replace(/^```\s*/i, "");
+      cleanedResponse = cleanedResponse.replace(/\s*```$/i, "");
       cleanedResponse = cleanedResponse.trim();
 
       // 尝试直接解析
@@ -218,27 +243,32 @@ CRITICAL: Your response must start with { and end with }. Do NOT wrap in markdow
         // 如果直接解析失败，尝试提取 JSON 对象
         const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
         if (!jsonMatch) {
-          throw new Error('No JSON object found in response');
+          throw new Error("No JSON object found in response");
         }
         parsed = JSON.parse(jsonMatch[0]);
       }
 
       // 验证必需字段
-      if (!parsed.category || !parsed.region || typeof parsed.impactScore !== 'number') {
-        this.logger.warn('Response missing required fields, using defaults');
+      if (
+        !parsed.category ||
+        !parsed.region ||
+        typeof parsed.impactScore !== "number"
+      ) {
+        this.logger.warn("Response missing required fields, using defaults");
       }
 
       return {
-        category: this.validateCategory(parsed.category) || fallbackCategory || 'other',
-        region: this.validateRegion(parsed.region) || 'global',
+        category:
+          this.validateCategory(parsed.category) || fallbackCategory || "other",
+        region: this.validateRegion(parsed.region) || "global",
         impactScore: this.validateImpactScore(parsed.impactScore),
-        summary: parsed.summary || 'No summary available',
-        whyItMatters: parsed.whyItMatters || '',
+        summary: parsed.summary || "No summary available",
+        whyItMatters: parsed.whyItMatters || "",
         tags: Array.isArray(parsed.tags) ? parsed.tags.slice(0, 5) : [],
         // 中文翻译字段
-        titleCn: parsed.titleCn || '',
-        summaryCn: parsed.summaryCn || '',
-        whyItMattersCn: parsed.whyItMattersCn || '',
+        titleCn: parsed.titleCn || "",
+        summaryCn: parsed.summaryCn || "",
+        whyItMattersCn: parsed.whyItMattersCn || "",
       };
     } catch (error: any) {
       this.logger.error(`Failed to parse GLM response: ${error.message}`);
@@ -252,18 +282,30 @@ CRITICAL: Your response must start with { and end with }. Do NOT wrap in markdow
    */
   private validateCategory(category: string): string | null {
     const validCategories = [
-      'research', 'product', 'finance', 'policy', 'ethics',
-      'robotics', 'lifestyle', 'entertainment', 'meme', 'other'
+      "research",
+      "product",
+      "finance",
+      "policy",
+      "ethics",
+      "robotics",
+      "lifestyle",
+      "entertainment",
+      "meme",
+      "other",
     ];
-    return validCategories.includes(category?.toLowerCase()) ? category.toLowerCase() : null;
+    return validCategories.includes(category?.toLowerCase())
+      ? category.toLowerCase()
+      : null;
   }
 
   /**
    * 验证区域
    */
   private validateRegion(region: string): string | null {
-    const validRegions = ['global', 'north_america', 'europe', 'asia', 'other'];
-    return validRegions.includes(region?.toLowerCase()) ? region.toLowerCase() : null;
+    const validRegions = ["global", "north_america", "europe", "asia", "other"];
+    return validRegions.includes(region?.toLowerCase())
+      ? region.toLowerCase()
+      : null;
   }
 
   /**
@@ -281,28 +323,32 @@ CRITICAL: Your response must start with { and end with }. Do NOT wrap in markdow
    * 获取默认分析结果（当 API 不可用时）
    * 包含基本的翻译降级策略
    */
-  private getDefaultAnalysis(title: string, content: string, sourceCategory?: string): NewsAnalysisResult {
+  private getDefaultAnalysis(
+    title: string,
+    content: string,
+    sourceCategory?: string,
+  ): NewsAnalysisResult {
     // 检测文本是否主要是中文
     const isChinese = this.isMostlyChinese(title);
 
     // 如果原文是中文，直接使用；否则提供基本的提示信息
     const titleCn = isChinese ? title : this.getBasicTranslation(title);
-    const summary = content.substring(0, 200) + '...';
+    const summary = content.substring(0, 200) + "...";
     const summaryCn = this.isMostlyChinese(content)
       ? summary
-      : '[自动翻译暂不可用] ' + summary;
+      : "[自动翻译暂不可用] " + summary;
 
     return {
-      category: sourceCategory || 'other',
-      region: 'global',
+      category: sourceCategory || "other",
+      region: "global",
       impactScore: 5,
       summary,
-      whyItMatters: '',
+      whyItMatters: "",
       tags: this.extractSimpleTags(title),
       // 中文翻译字段（使用降级策略）
       titleCn,
       summaryCn,
-      whyItMattersCn: '[AI分析服务暂时不可用]',
+      whyItMattersCn: "[AI分析服务暂时不可用]",
     };
   }
 
@@ -314,16 +360,16 @@ CRITICAL: Your response must start with { and end with }. Do NOT wrap in markdow
 
     // 计算中文字符的比例
     const chineseChars = text.match(/[\u4e00-\u9fa5]/g) || [];
-    const totalChars = text.replace(/\s/g, '').length;
+    const totalChars = text.replace(/\s/g, "").length;
 
-    return totalChars > 0 && (chineseChars.length / totalChars) > 0.3;
+    return totalChars > 0 && chineseChars.length / totalChars > 0.3;
   }
 
   /**
    * 基本翻译（提供关键词翻译或提示信息）
    */
   private getBasicTranslation(text: string): string {
-    if (!text) return '';
+    if (!text) return "";
 
     // 如果文本本身就包含中文，直接返回
     if (this.isMostlyChinese(text)) {
@@ -332,37 +378,37 @@ CRITICAL: Your response must start with { and end with }. Do NOT wrap in markdow
 
     // 常见AI术语的简单映射
     const commonTerms: Record<string, string> = {
-      'AI': '人工智能',
-      'Artificial Intelligence': '人工智能',
-      'Machine Learning': '机器学习',
-      'Deep Learning': '深度学习',
-      'Neural Network': '神经网络',
-      'GPT': 'GPT',
-      'LLM': '大语言模型',
-      'ChatGPT': 'ChatGPT',
-      'OpenAI': 'OpenAI',
-      'Google': '谷歌',
-      'Microsoft': '微软',
-      'Meta': 'Meta',
-      'Apple': '苹果',
-      'Amazon': '亚马逊',
-      'NVIDIA': '英伟达',
-      'Releases': '发布',
-      'Announces': '宣布',
-      'Launches': '推出',
-      'Introduces': '介绍',
-      'Research': '研究',
-      'Model': '模型',
-      'API': 'API',
-      'Update': '更新',
-      'New': '新',
-      'Breakthrough': '突破',
+      AI: "人工智能",
+      "Artificial Intelligence": "人工智能",
+      "Machine Learning": "机器学习",
+      "Deep Learning": "深度学习",
+      "Neural Network": "神经网络",
+      GPT: "GPT",
+      LLM: "大语言模型",
+      ChatGPT: "ChatGPT",
+      OpenAI: "OpenAI",
+      Google: "谷歌",
+      Microsoft: "微软",
+      Meta: "Meta",
+      Apple: "苹果",
+      Amazon: "亚马逊",
+      NVIDIA: "英伟达",
+      Releases: "发布",
+      Announces: "宣布",
+      Launches: "推出",
+      Introduces: "介绍",
+      Research: "研究",
+      Model: "模型",
+      API: "API",
+      Update: "更新",
+      New: "新",
+      Breakthrough: "突破",
     };
 
     // 尝试替换常见术语
     let translated = text;
     for (const [en, cn] of Object.entries(commonTerms)) {
-      const regex = new RegExp(`\\b${en}\\b`, 'gi');
+      const regex = new RegExp(`\\b${en}\\b`, "gi");
       translated = translated.replace(regex, cn);
     }
 
@@ -378,10 +424,21 @@ CRITICAL: Your response must start with { and end with }. Do NOT wrap in markdow
    * 简单标签提取（基于标题）
    */
   private extractSimpleTags(title: string): string[] {
-    const commonAITerms = ['AI', 'ML', 'GPT', 'LLM', 'neural', 'deep learning', 'ChatGPT', 'OpenAI', 'Google', 'Microsoft'];
-    return commonAITerms.filter(term =>
-      title.toLowerCase().includes(term.toLowerCase())
-    ).slice(0, 3);
+    const commonAITerms = [
+      "AI",
+      "ML",
+      "GPT",
+      "LLM",
+      "neural",
+      "deep learning",
+      "ChatGPT",
+      "OpenAI",
+      "Google",
+      "Microsoft",
+    ];
+    return commonAITerms
+      .filter((term) => title.toLowerCase().includes(term.toLowerCase()))
+      .slice(0, 3);
   }
 
   /**
@@ -389,19 +446,21 @@ CRITICAL: Your response must start with { and end with }. Do NOT wrap in markdow
    */
   async generateRealtimeNews(count: number = 8): Promise<any[]> {
     if (!this.glmApiKey) {
-      this.logger.warn('GLM API key not configured, cannot generate news');
+      this.logger.warn("GLM API key not configured, cannot generate news");
       return [];
     }
 
     // 生成缓存键（基于日期、小时和数量）- 每小时更新一次
     const now = new Date();
-    const dateHour = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}`;
+    const dateHour = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}-${String(now.getHours()).padStart(2, "0")}`;
     const cacheKey = `ai-news:${dateHour}:count-${count}`;
 
     // 尝试从智能缓存获取（支持降级到内存缓存）
     const cachedNews = await this.cacheStrategy.get<any[]>(cacheKey);
     if (cachedNews) {
-      this.logger.log(`Returning cached news for ${dateHour} (${cachedNews.length} items)`);
+      this.logger.log(
+        `Returning cached news for ${dateHour} (${cachedNews.length} items)`,
+      );
       return cachedNews;
     }
 
@@ -420,26 +479,34 @@ CRITICAL: Your response must start with { and end with }. Do NOT wrap in markdow
    * 内部新闻生成方法（不涉及缓存）
    */
   private async generateNewsInternal(count: number): Promise<any[]> {
-    const dedupeSetKey = 'ai-news:titles:dedupe';
+    const dedupeSetKey = "ai-news:titles:dedupe";
     const maxRetries = 3; // 最多重试3次
-    let allNewsItems: any[] = [];
+    const allNewsItems: any[] = [];
 
     try {
       // 获取已存在的标题hash集合
       const existingTitles = await this.redisService.sMembers(dedupeSetKey);
-      this.logger.log(`Found ${existingTitles.length} existing news titles in Redis`);
+      this.logger.log(
+        `Found ${existingTitles.length} existing news titles in Redis`,
+      );
 
-      for (let retry = 0; retry < maxRetries && allNewsItems.length < count; retry++) {
+      for (
+        let retry = 0;
+        retry < maxRetries && allNewsItems.length < count;
+        retry++
+      ) {
         const remainingCount = count - allNewsItems.length;
         // 请求稍微多一些，以防去重后不够数量
         const requestCount = Math.min(remainingCount + 5, 30);
 
-        this.logger.log(`Generating ${requestCount} news items (attempt ${retry + 1}/${maxRetries})...`);
+        this.logger.log(
+          `Generating ${requestCount} news items (attempt ${retry + 1}/${maxRetries})...`,
+        );
 
-        const todayFormatted = new Date().toLocaleDateString('zh-CN', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
+        const todayFormatted = new Date().toLocaleDateString("zh-CN", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
         });
 
         const prompt = `你是一个JSON-only API。请基于你的知识库，生成${requestCount}条最近一周内的AI行业新闻。
@@ -472,25 +539,25 @@ CRITICAL: Your response must start with { and end with }. Do NOT wrap in markdow
 
         // 清理响应
         let cleanedResponse = response.trim();
-        cleanedResponse = cleanedResponse.replace(/^```json\s*/i, '');
-        cleanedResponse = cleanedResponse.replace(/^```\s*/i, '');
-        cleanedResponse = cleanedResponse.replace(/\s*```$/i, '');
+        cleanedResponse = cleanedResponse.replace(/^```json\s*/i, "");
+        cleanedResponse = cleanedResponse.replace(/^```\s*/i, "");
+        cleanedResponse = cleanedResponse.replace(/\s*```$/i, "");
         cleanedResponse = cleanedResponse.trim();
 
         const newsItems = JSON.parse(cleanedResponse);
 
         if (!Array.isArray(newsItems)) {
-          this.logger.error('GLM response is not an array');
+          this.logger.error("GLM response is not an array");
           continue;
         }
 
         // 为每条AI新闻生成唯一的sourceUrl并去重
         const now = new Date();
-        const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
-        const hourStr = String(now.getHours()).padStart(2, '0');
+        const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
+        const hourStr = String(now.getHours()).padStart(2, "0");
 
         for (const item of newsItems) {
-          const titleHash = this.simpleHash(item.title || item.titleCn || '');
+          const titleHash = this.simpleHash(item.title || item.titleCn || "");
 
           // 检查标题hash是否已存在
           const isDuplicate = existingTitles.includes(titleHash);
@@ -511,11 +578,15 @@ CRITICAL: Your response must start with { and end with }. Do NOT wrap in markdow
               break;
             }
           } else {
-            this.logger.debug(`Skipping duplicate news: ${item.title || item.titleCn}`);
+            this.logger.debug(
+              `Skipping duplicate news: ${item.title || item.titleCn}`,
+            );
           }
         }
 
-        this.logger.log(`Collected ${allNewsItems.length}/${count} unique news items`);
+        this.logger.log(
+          `Collected ${allNewsItems.length}/${count} unique news items`,
+        );
       }
 
       // 为去重集合设置24小时过期时间
@@ -523,11 +594,15 @@ CRITICAL: Your response must start with { and end with }. Do NOT wrap in markdow
         await this.redisService.expire(dedupeSetKey, 86400); // 24小时
       }
 
-      this.logger.log(`Generated ${allNewsItems.length} unique news items after deduplication`);
+      this.logger.log(
+        `Generated ${allNewsItems.length} unique news items after deduplication`,
+      );
       return allNewsItems;
-
     } catch (error: any) {
-      this.logger.error(`Failed to generate realtime news: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to generate realtime news: ${error.message}`,
+        error.stack,
+      );
       return allNewsItems; // 返回已收集的新闻，即使出错
     }
   }
@@ -539,7 +614,7 @@ CRITICAL: Your response must start with { and end with }. Do NOT wrap in markdow
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
       const char = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash; // Convert to 32-bit integer
     }
     return Math.abs(hash).toString(36);

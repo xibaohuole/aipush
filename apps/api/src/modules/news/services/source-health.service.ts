@@ -1,7 +1,11 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { RedisService } from '../../../common/redis/redis.service';
-import { getEnabledSources, NEWS_SOURCES, NewsSource } from '../config/news-sources.config';
-import axios from 'axios';
+import { Injectable, Logger } from "@nestjs/common";
+import { RedisService } from "../../../common/redis/redis.service";
+import {
+  getEnabledSources,
+  NEWS_SOURCES,
+  NewsSource,
+} from "../config/news-sources.config";
+import axios from "axios";
 
 /**
  * RSS源健康状态
@@ -22,7 +26,7 @@ export interface SourceHealthStatus {
 @Injectable()
 export class SourceHealthService {
   private readonly logger = new Logger(SourceHealthService.name);
-  private readonly HEALTH_KEY_PREFIX = 'source-health:';
+  private readonly HEALTH_KEY_PREFIX = "source-health:";
   private readonly MAX_CONSECUTIVE_FAILURES = 3; // 连续失败3次后禁用
   private readonly HEALTH_CHECK_TIMEOUT = 10000; // 10秒超时
 
@@ -42,7 +46,7 @@ export class SourceHealthService {
       const response = await axios.get(source.url, {
         timeout: this.HEALTH_CHECK_TIMEOUT,
         headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; AINewsBot/1.0)',
+          "User-Agent": "Mozilla/5.0 (compatible; AINewsBot/1.0)",
         },
         validateStatus: (status) => status < 500, // 只要不是5xx就算成功
       });
@@ -56,18 +60,20 @@ export class SourceHealthService {
     } catch (error: any) {
       responseTime = Date.now() - startTime;
       isHealthy = false;
-      lastError = error.code === 'ECONNABORTED'
-        ? '请求超时'
-        : error.message?.substring(0, 100) || '未知错误';
+      lastError =
+        error.code === "ECONNABORTED"
+          ? "请求超时"
+          : error.message?.substring(0, 100) || "未知错误";
 
       this.logger.warn(
-        `源健康检查失败: ${source.name} - ${lastError} (${responseTime}ms)`
+        `源健康检查失败: ${source.name} - ${lastError} (${responseTime}ms)`,
       );
     }
 
     // 获取历史失败次数
     const healthKey = `${this.HEALTH_KEY_PREFIX}${source.id}`;
-    const previousData = await this.redisService.get<SourceHealthStatus>(healthKey);
+    const previousData =
+      await this.redisService.get<SourceHealthStatus>(healthKey);
 
     const consecutiveFailures = isHealthy
       ? 0
@@ -89,7 +95,7 @@ export class SourceHealthService {
     // 如果连续失败次数超过阈值，记录警告
     if (consecutiveFailures >= this.MAX_CONSECUTIVE_FAILURES) {
       this.logger.error(
-        `⚠️ 源已连续失败${consecutiveFailures}次，建议禁用: ${source.name} (${source.url})`
+        `⚠️ 源已连续失败${consecutiveFailures}次，建议禁用: ${source.name} (${source.url})`,
       );
     }
 
@@ -106,7 +112,7 @@ export class SourceHealthService {
     warnings: number;
     results: SourceHealthStatus[];
   }> {
-    this.logger.log('开始RSS源健康检查...');
+    this.logger.log("开始RSS源健康检查...");
 
     const sources = getEnabledSources();
     const results: SourceHealthStatus[] = [];
@@ -120,14 +126,14 @@ export class SourceHealthService {
       await this.sleep(500);
     }
 
-    const healthy = results.filter(r => r.isHealthy).length;
-    const unhealthy = results.filter(r => !r.isHealthy).length;
+    const healthy = results.filter((r) => r.isHealthy).length;
+    const unhealthy = results.filter((r) => !r.isHealthy).length;
     const warnings = results.filter(
-      r => r.consecutiveFailures >= this.MAX_CONSECUTIVE_FAILURES
+      (r) => r.consecutiveFailures >= this.MAX_CONSECUTIVE_FAILURES,
     ).length;
 
     this.logger.log(
-      `健康检查完成: ${healthy}/${sources.length} 健康, ${unhealthy} 不健康, ${warnings} 需要关注`
+      `健康检查完成: ${healthy}/${sources.length} 健康, ${unhealthy} 不健康, ${warnings} 需要关注`,
     );
 
     return {
@@ -170,7 +176,7 @@ export class SourceHealthService {
   async getProblematicSources(): Promise<SourceHealthStatus[]> {
     const allStatuses = await this.getAllSourcesHealthStatus();
     return allStatuses.filter(
-      s => s.consecutiveFailures >= this.MAX_CONSECUTIVE_FAILURES
+      (s) => s.consecutiveFailures >= this.MAX_CONSECUTIVE_FAILURES,
     );
   }
 
@@ -190,33 +196,35 @@ export class SourceHealthService {
     const statuses = await this.getAllSourcesHealthStatus();
 
     if (statuses.length === 0) {
-      return '暂无健康检查数据，请先运行健康检查。';
+      return "暂无健康检查数据，请先运行健康检查。";
     }
 
-    const healthy = statuses.filter(s => s.isHealthy);
-    const unhealthy = statuses.filter(s => !s.isHealthy);
-    const warnings = statuses.filter(s => s.consecutiveFailures >= this.MAX_CONSECUTIVE_FAILURES);
+    const healthy = statuses.filter((s) => s.isHealthy);
+    const unhealthy = statuses.filter((s) => !s.isHealthy);
+    const warnings = statuses.filter(
+      (s) => s.consecutiveFailures >= this.MAX_CONSECUTIVE_FAILURES,
+    );
 
-    let report = '=== RSS源健康报告 ===\n\n';
+    let report = "=== RSS源健康报告 ===\n\n";
     report += `总源数: ${statuses.length}\n`;
     report += `健康: ${healthy.length} (${((healthy.length / statuses.length) * 100).toFixed(1)}%)\n`;
     report += `不健康: ${unhealthy.length}\n`;
     report += `需要关注: ${warnings.length}\n\n`;
 
     if (warnings.length > 0) {
-      report += '⚠️ 需要关注的源（连续失败≥3次）:\n';
-      warnings.forEach(w => {
+      report += "⚠️ 需要关注的源（连续失败≥3次）:\n";
+      warnings.forEach((w) => {
         report += `  - ${w.sourceName} (${w.sourceId})\n`;
         report += `    连续失败: ${w.consecutiveFailures}次\n`;
-        report += `    最后错误: ${w.lastError || 'N/A'}\n`;
+        report += `    最后错误: ${w.lastError || "N/A"}\n`;
         report += `    上次检查: ${w.lastCheckTime}\n\n`;
       });
     }
 
     if (unhealthy.length > 0 && unhealthy.length <= 10) {
-      report += '❌ 不健康的源:\n';
-      unhealthy.forEach(u => {
-        report += `  - ${u.sourceName}: ${u.lastError || '未知错误'}\n`;
+      report += "❌ 不健康的源:\n";
+      unhealthy.forEach((u) => {
+        report += `  - ${u.sourceName}: ${u.lastError || "未知错误"}\n`;
       });
     }
 
@@ -227,6 +235,6 @@ export class SourceHealthService {
    * 辅助函数：延迟
    */
   private sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }

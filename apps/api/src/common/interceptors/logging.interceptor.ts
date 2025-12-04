@@ -4,10 +4,10 @@ import {
   ExecutionContext,
   CallHandler,
   Logger,
-} from '@nestjs/common';
-import { Observable } from 'rxjs';
-import { tap } from 'rxjs/operators';
-import { Request } from 'express';
+} from "@nestjs/common";
+import { Observable } from "rxjs";
+import { tap } from "rxjs/operators";
+import { Request } from "express";
 
 @Injectable()
 export class LoggingInterceptor implements NestInterceptor {
@@ -16,12 +16,10 @@ export class LoggingInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const request = context.switchToHttp().getRequest<Request>();
     const { method, url, body } = request;
-    const userAgent = request.get('user-agent') || '';
+    const userAgent = request.get("user-agent") || "";
     const startTime = Date.now();
 
-    this.logger.log(
-      `→ ${method} ${url} - ${userAgent}`,
-    );
+    this.logger.log(`→ ${method} ${url} - ${userAgent}`);
 
     if (body && Object.keys(body).length > 0) {
       this.logger.debug(`Request body: ${JSON.stringify(body)}`);
@@ -31,9 +29,7 @@ export class LoggingInterceptor implements NestInterceptor {
       tap({
         next: () => {
           const elapsedTime = Date.now() - startTime;
-          this.logger.log(
-            `← ${method} ${url} - ${elapsedTime}ms`,
-          );
+          this.logger.log(`← ${method} ${url} - ${elapsedTime}ms`);
         },
         error: (error) => {
           const elapsedTime = Date.now() - startTime;

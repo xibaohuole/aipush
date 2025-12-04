@@ -1,6 +1,6 @@
-import { Injectable, Logger, BadRequestException } from '@nestjs/common';
-import { PrismaService } from '../../../common/prisma/prisma.service';
-import { RedisService } from '../../../common/redis/redis.service';
+import { Injectable, Logger, BadRequestException } from "@nestjs/common";
+import { PrismaService } from "../../../common/prisma/prisma.service";
+import { RedisService } from "../../../common/redis/redis.service";
 
 /**
  * 已读记录服务
@@ -26,14 +26,14 @@ export class ReadHistoryService {
   ) {
     try {
       if (!userId && !sessionId) {
-        throw new BadRequestException('Either userId or sessionId is required');
+        throw new BadRequestException("Either userId or sessionId is required");
       }
 
       // 创建或更新已读记录
       const readHistory = userId
         ? await this.prisma.readHistory.upsert({
             where: {
-              userId_newsId: { userId, newsId }
+              userId_newsId: { userId, newsId },
             } as any,
             update: {
               readAt: new Date(),
@@ -49,7 +49,7 @@ export class ReadHistoryService {
           })
         : await this.prisma.readHistory.upsert({
             where: {
-              sessionId_newsId: { sessionId, newsId }
+              sessionId_newsId: { sessionId, newsId },
             } as any,
             update: {
               readAt: new Date(),
@@ -81,7 +81,11 @@ export class ReadHistoryService {
   /**
    * 检查新闻是否已读
    */
-  async isRead(newsId: string, sessionId: string, userId?: string): Promise<boolean> {
+  async isRead(
+    newsId: string,
+    sessionId: string,
+    userId?: string,
+  ): Promise<boolean> {
     // 先检查 Redis
     const cacheKey = userId
       ? `read:user:${userId}:${newsId}`
@@ -96,12 +100,12 @@ export class ReadHistoryService {
     const readHistory = userId
       ? await this.prisma.readHistory.findUnique({
           where: {
-            userId_newsId: { userId, newsId }
+            userId_newsId: { userId, newsId },
           } as any,
         })
       : await this.prisma.readHistory.findUnique({
           where: {
-            sessionId_newsId: { sessionId, newsId }
+            sessionId_newsId: { sessionId, newsId },
           } as any,
         });
     if (readHistory) {
@@ -134,7 +138,9 @@ export class ReadHistoryService {
       select: { newsId: true },
     });
 
-    const readIds = new Set(readRecords.map((r: { newsId: string }) => r.newsId));
+    const readIds = new Set(
+      readRecords.map((r: { newsId: string }) => r.newsId),
+    );
 
     const result: Record<string, boolean> = {};
     for (const newsId of newsIds) {
@@ -154,21 +160,19 @@ export class ReadHistoryService {
     limit: number = 20,
   ) {
     if (!userId && !sessionId) {
-      throw new BadRequestException('Either userId or sessionId is required');
+      throw new BadRequestException("Either userId or sessionId is required");
     }
 
     const skip = (page - 1) * limit;
 
-    const where = userId
-      ? { userId }
-      : { sessionId };
+    const where = userId ? { userId } : { sessionId };
 
     const [items, total] = await Promise.all([
       this.prisma.readHistory.findMany({
         where,
         skip,
         take: limit,
-        orderBy: { readAt: 'desc' },
+        orderBy: { readAt: "desc" },
         include: {
           news: {
             select: {
@@ -219,7 +223,11 @@ export class ReadHistoryService {
     const where = userId ? { userId } : { sessionId };
 
     const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayStart = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    );
     const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
     const [totalRead, todayRead, weekRead, durationStats] = await Promise.all([

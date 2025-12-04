@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../common/prisma/prisma.service';
-import { UpdateSettingsDto } from './dto/update-settings.dto';
+import { Injectable } from "@nestjs/common";
+import { PrismaService } from "../../common/prisma/prisma.service";
+import { UpdateSettingsDto } from "./dto/update-settings.dto";
 
 @Injectable()
 export class SettingsService {
@@ -17,12 +17,12 @@ export class SettingsService {
     if (!settings) {
       settings = await this.prisma.settings.create({
         data: {
-          siteName: 'AI Pulse Daily',
-          siteDescription: 'Your daily AI news aggregation platform',
+          siteName: "AI Pulse Daily",
+          siteDescription: "Your daily AI news aggregation platform",
           itemsPerPage: 20,
           commentsEnabled: true,
           autoApproveComments: false,
-          apiBaseUrl: 'http://localhost:4000',
+          apiBaseUrl: "http://localhost:4000",
         },
       });
     }
@@ -55,13 +55,13 @@ export class SettingsService {
     const resetSettings = await this.prisma.settings.update({
       where: { id: existingSettings.id },
       data: {
-        siteName: 'AI Pulse Daily',
-        siteDescription: 'Your daily AI news aggregation platform',
+        siteName: "AI Pulse Daily",
+        siteDescription: "Your daily AI news aggregation platform",
         itemsPerPage: 20,
         commentsEnabled: true,
         autoApproveComments: false,
         glmApiKey: null,
-        apiBaseUrl: 'http://localhost:4000',
+        apiBaseUrl: "http://localhost:4000",
       },
     });
 

@@ -1,26 +1,26 @@
-import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
-import { ThrottlerModule } from '@nestjs/throttler';
-import { ScheduleModule } from '@nestjs/schedule';
+import { Module } from "@nestjs/common";
+import { ConfigModule } from "@nestjs/config";
+import { ThrottlerModule } from "@nestjs/throttler";
+import { ScheduleModule } from "@nestjs/schedule";
 
 // Common modules
-import { PrismaModule } from './common/prisma/prisma.module';
-import { RedisModule } from './common/redis/redis.module';
-import { HealthController } from './common/health/health.controller';
+import { PrismaModule } from "./common/prisma/prisma.module";
+import { RedisModule } from "./common/redis/redis.module";
+import { HealthController } from "./common/health/health.controller";
 
 // Feature modules
-import { AuthModule } from './modules/auth/auth.module';
-import { UsersModule } from './modules/users/users.module';
-import { NewsModule } from './modules/news/news.module';
-import { BookmarksModule } from './modules/bookmarks/bookmarks.module';
-import { CommentsModule } from './modules/comments/comments.module';
-import { DailySummariesModule } from './modules/daily-summaries/daily-summaries.module';
-import { NotificationsModule } from './modules/notifications/notifications.module';
-import { AnalyticsModule } from './modules/analytics/analytics.module';
-import { SettingsModule } from './modules/settings/settings.module';
+import { AuthModule } from "./modules/auth/auth.module";
+import { UsersModule } from "./modules/users/users.module";
+import { NewsModule } from "./modules/news/news.module";
+import { BookmarksModule } from "./modules/bookmarks/bookmarks.module";
+import { CommentsModule } from "./modules/comments/comments.module";
+import { DailySummariesModule } from "./modules/daily-summaries/daily-summaries.module";
+import { NotificationsModule } from "./modules/notifications/notifications.module";
+import { AnalyticsModule } from "./modules/analytics/analytics.module";
+import { SettingsModule } from "./modules/settings/settings.module";
 
 // Configuration
-import configuration from './config/configuration';
+import configuration from "./config/configuration";
 
 @Module({
   controllers: [HealthController],
@@ -29,7 +29,7 @@ import configuration from './config/configuration';
     ConfigModule.forRoot({
       isGlobal: true,
       load: [configuration],
-      envFilePath: ['.env.local', '.env'],
+      envFilePath: [".env.local", ".env"],
     }),
 
     // Rate limiting

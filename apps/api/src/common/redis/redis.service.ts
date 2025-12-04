@@ -1,6 +1,11 @@
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import Redis from 'ioredis';
+import {
+  Injectable,
+  Logger,
+  OnModuleInit,
+  OnModuleDestroy,
+} from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import Redis from "ioredis";
 
 @Injectable()
 export class RedisService implements OnModuleInit, OnModuleDestroy {
@@ -14,13 +19,13 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     // 支持两种配置方式：
     // 1. REDIS_URL - 完整的 Redis 连接字符串（推荐）
     // 2. REDIS_HOST + REDIS_PORT - 分开配置
-    const redisUrl = this.configService.get<string>('REDIS_URL');
-    const redisHost = this.configService.get<string>('REDIS_HOST');
-    const redisPort = this.configService.get<number>('REDIS_PORT', 6379);
+    const redisUrl = this.configService.get<string>("REDIS_URL");
+    const redisHost = this.configService.get<string>("REDIS_HOST");
+    const redisPort = this.configService.get<number>("REDIS_PORT", 6379);
 
     // 如果没有配置 Redis，使用内存模式（开发环境）
     if (!redisUrl && !redisHost) {
-      this.logger.warn('Redis not configured, caching will be disabled');
+      this.logger.warn("Redis not configured, caching will be disabled");
       return;
     }
 
@@ -30,7 +35,9 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
         this.client = new Redis(redisUrl, {
           retryStrategy: (times) => {
             if (times > 3) {
-              this.logger.warn('Redis connection failed after 3 retries, disabling cache');
+              this.logger.warn(
+                "Redis connection failed after 3 retries, disabling cache",
+              );
               return null; // 停止重试
             }
             const delay = Math.min(times * 1000, 3000);
@@ -40,7 +47,9 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
           enableReadyCheck: true,
           lazyConnect: false,
         });
-        this.logger.log(`Connecting to Redis using URL: ${redisUrl.replace(/:[^:@]+@/, ':****@')}`);
+        this.logger.log(
+          `Connecting to Redis using URL: ${redisUrl.replace(/:[^:@]+@/, ":****@")}`,
+        );
       } else {
         // 否则使用 host + port
         this.client = new Redis({
@@ -48,7 +57,9 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
           port: redisPort,
           retryStrategy: (times) => {
             if (times > 3) {
-              this.logger.warn('Redis connection failed after 3 retries, disabling cache');
+              this.logger.warn(
+                "Redis connection failed after 3 retries, disabling cache",
+              );
               return null; // 停止重试
             }
             const delay = Math.min(times * 1000, 3000);
@@ -61,25 +72,25 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
         this.logger.log(`Connecting to Redis at ${redisHost}:${redisPort}`);
       }
 
-      this.client.on('connect', () => {
-        this.logger.log('✅ Redis connection established successfully');
+      this.client.on("connect", () => {
+        this.logger.log("✅ Redis connection established successfully");
         this.isConnected = true;
       });
 
-      this.client.on('error', (error) => {
+      this.client.on("error", (error) => {
         this.logger.error(`Redis connection error: ${error.message}`);
         this.isConnected = false;
       });
 
-      this.client.on('close', () => {
-        this.logger.warn('Redis connection closed');
+      this.client.on("close", () => {
+        this.logger.warn("Redis connection closed");
         this.isConnected = false;
       });
 
       await this.client.ping();
     } catch (error: any) {
       this.logger.error(`Failed to connect to Redis: ${error.message}`);
-      this.logger.warn('Continuing without Redis cache');
+      this.logger.warn("Continuing without Redis cache");
       this.client = null;
     }
   }
@@ -87,7 +98,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   async onModuleDestroy() {
     if (this.client) {
       await this.client.quit();
-      this.logger.log('Redis connection closed');
+      this.logger.log("Redis connection closed");
     }
   }
 
@@ -161,7 +172,9 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       const result = await this.client.exists(key);
       return result === 1;
     } catch (error: any) {
-      this.logger.error(`Failed to check existence of key ${key}: ${error.message}`);
+      this.logger.error(
+        `Failed to check existence of key ${key}: ${error.message}`,
+      );
       return false;
     }
   }
@@ -176,7 +189,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
     try {
       await this.client.flushall();
-      this.logger.log('All cache cleared');
+      this.logger.log("All cache cleared");
       return true;
     } catch (error: any) {
       this.logger.error(`Failed to flush all: ${error.message}`);
@@ -202,10 +215,14 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       }
 
       await this.client.del(...keys);
-      this.logger.log(`Deleted ${keys.length} keys matching pattern: ${pattern}`);
+      this.logger.log(
+        `Deleted ${keys.length} keys matching pattern: ${pattern}`,
+      );
       return keys.length;
     } catch (error: any) {
-      this.logger.error(`Failed to delete keys by pattern ${pattern}: ${error.message}`);
+      this.logger.error(
+        `Failed to delete keys by pattern ${pattern}: ${error.message}`,
+      );
       return 0;
     }
   }
@@ -246,7 +263,9 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       const result = await this.client.sismember(key, member);
       return result === 1;
     } catch (error: any) {
-      this.logger.error(`Failed to check set membership ${key}: ${error.message}`);
+      this.logger.error(
+        `Failed to check set membership ${key}: ${error.message}`,
+      );
       return false;
     }
   }
@@ -308,14 +327,16 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
    */
   async getInfo(section?: string): Promise<string> {
     if (!this.client || !this.isConnected) {
-      return 'Redis is not connected';
+      return "Redis is not connected";
     }
 
     try {
-      return section ? await this.client.info(section) : await this.client.info();
+      return section
+        ? await this.client.info(section)
+        : await this.client.info();
     } catch (error: any) {
       this.logger.error(`Failed to get Redis info: ${error.message}`);
-      return '';
+      return "";
     }
   }
 
@@ -339,7 +360,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     if (!this.client || !this.isConnected) {
       return {
         connected: false,
-        memory: { used: '0', peak: '0', fragmentation: 0 },
+        memory: { used: "0", peak: "0", fragmentation: 0 },
         stats: { totalKeys: 0, commandsProcessed: 0, connectionsReceived: 0 },
         keyspace: {},
       };
@@ -350,17 +371,23 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       const dbSize = await this.client.dbsize();
 
       // 解析INFO输出
-      const memoryUsed = this.extractInfoValue(info, 'used_memory_human');
-      const memoryPeak = this.extractInfoValue(info, 'used_memory_peak_human');
-      const fragmentation = parseFloat(this.extractInfoValue(info, 'mem_fragmentation_ratio') || '1');
-      const commandsProcessed = parseInt(this.extractInfoValue(info, 'total_commands_processed') || '0');
-      const connectionsReceived = parseInt(this.extractInfoValue(info, 'total_connections_received') || '0');
+      const memoryUsed = this.extractInfoValue(info, "used_memory_human");
+      const memoryPeak = this.extractInfoValue(info, "used_memory_peak_human");
+      const fragmentation = parseFloat(
+        this.extractInfoValue(info, "mem_fragmentation_ratio") || "1",
+      );
+      const commandsProcessed = parseInt(
+        this.extractInfoValue(info, "total_commands_processed") || "0",
+      );
+      const connectionsReceived = parseInt(
+        this.extractInfoValue(info, "total_connections_received") || "0",
+      );
 
       return {
         connected: true,
         memory: {
-          used: memoryUsed || '0',
-          peak: memoryPeak || '0',
+          used: memoryUsed || "0",
+          peak: memoryPeak || "0",
           fragmentation,
         },
         stats: {
@@ -374,7 +401,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       this.logger.error(`Failed to get Redis stats: ${error.message}`);
       return {
         connected: false,
-        memory: { used: '0', peak: '0', fragmentation: 0 },
+        memory: { used: "0", peak: "0", fragmentation: 0 },
         stats: { totalKeys: 0, commandsProcessed: 0, connectionsReceived: 0 },
         keyspace: {},
       };
@@ -390,18 +417,13 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     }
 
     try {
-      const patterns = [
-        'ai-news:*',
-        'source-health:*',
-        'cache:*',
-        'news:*',
-      ];
+      const patterns = ["ai-news:*", "source-health:*", "cache:*", "news:*"];
 
       const stats: Record<string, number> = {};
 
       for (const pattern of patterns) {
         const keys = await this.client.keys(pattern);
-        const prefix = pattern.replace(':*', '');
+        const prefix = pattern.replace(":*", "");
         stats[prefix] = keys.length;
       }
 
@@ -418,7 +440,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   private extractInfoValue(info: string, key: string): string {
     const regex = new RegExp(`${key}:(.+)`);
     const match = info.match(regex);
-    return match ? match[1].trim() : '';
+    return match ? match[1].trim() : "";
   }
 
   /**
@@ -443,7 +465,9 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       }
 
       if (cleanedCount > 0) {
-        this.logger.log(`Cleaned up ${cleanedCount} expired keys matching ${pattern}`);
+        this.logger.log(
+          `Cleaned up ${cleanedCount} expired keys matching ${pattern}`,
+        );
       }
 
       return cleanedCount;
@@ -456,7 +480,10 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   /**
    * 获取特定pattern的所有键及其TTL
    */
-  async getKeysWithTTL(pattern: string, limit: number = 100): Promise<Array<{ key: string; ttl: number }>> {
+  async getKeysWithTTL(
+    pattern: string,
+    limit: number = 100,
+  ): Promise<Array<{ key: string; ttl: number }>> {
     if (!this.client || !this.isConnected) {
       return [];
     }

@@ -1,9 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../../../common/prisma/prisma.service';
-import { RSSParserService, ParsedNewsItem } from './rss-parser.service';
-import { AIAnalyzerService } from './ai-analyzer.service';
-import { getEnabledSources, NewsSource } from '../config/news-sources.config';
-import pLimit from 'p-limit';
+import { Injectable, Logger } from "@nestjs/common";
+import { PrismaService } from "../../../common/prisma/prisma.service";
+import { RSSParserService, ParsedNewsItem } from "./rss-parser.service";
+import { AIAnalyzerService } from "./ai-analyzer.service";
+import { getEnabledSources, NewsSource } from "../config/news-sources.config";
+import pLimit from "p-limit";
 
 /**
  * 新闻爬取服务
@@ -29,13 +29,13 @@ export class NewsScraperService {
     duplicate: number;
     failed: number;
   }> {
-    this.logger.log('Starting news scraping process...');
+    this.logger.log("Starting news scraping process...");
 
     const sources = getEnabledSources();
     this.logger.log(`Found ${sources.length} enabled news sources`);
 
     // 准备 RSS feeds
-    const feeds = sources.map(source => ({
+    const feeds = sources.map((source) => ({
       url: source.url,
       name: source.name,
       sourceConfig: source,
@@ -43,7 +43,7 @@ export class NewsScraperService {
 
     // 解析所有 RSS feeds
     const parsedItems = await this.rssParser.parseMultipleFeeds(
-      feeds.map(f => ({ url: f.url, name: f.name }))
+      feeds.map((f) => ({ url: f.url, name: f.name })),
     );
 
     this.logger.log(`Parsed ${parsedItems.length} news items from RSS feeds`);
@@ -65,22 +65,25 @@ export class NewsScraperService {
     const results = await Promise.allSettled(
       parsedItems.map((item, index) =>
         limit(async () => {
-          const source = sources.find(s => s.name === item.source);
-          this.logger.debug(`[${index + 1}/${parsedItems.length}] 处理新闻: ${item.title.substring(0, 50)}...`);
+          const source = sources.find((s) => s.name === item.source);
+          this.logger.debug(
+            `[${index + 1}/${parsedItems.length}] 处理新闻: ${item.title.substring(0, 50)}...`,
+          );
           return this.processNewsItem(item, source);
-        })
-      )
+        }),
+      ),
     );
 
     // 统计结果
     results.forEach((result, index) => {
-      if (result.status === 'fulfilled') {
-        if (result.value === 'new') stats.new++;
-        else if (result.value === 'duplicate') stats.duplicate++;
+      if (result.status === "fulfilled") {
+        if (result.value === "new") stats.new++;
+        else if (result.value === "duplicate") stats.duplicate++;
       } else {
-        const errorMsg = result.reason?.message || result.reason?.toString() || '未知错误';
+        const errorMsg =
+          result.reason?.message || result.reason?.toString() || "未知错误";
         this.logger.error(
-          `处理新闻失败 [${index + 1}/${parsedItems.length}]: ${parsedItems[index].title.substring(0, 50)}...`
+          `处理新闻失败 [${index + 1}/${parsedItems.length}]: ${parsedItems[index].title.substring(0, 50)}...`,
         );
         this.logger.error(`  错误原因: ${errorMsg}`);
         stats.failed++;
@@ -88,7 +91,7 @@ export class NewsScraperService {
     });
 
     this.logger.log(
-      `Scraping complete: ${stats.new} new, ${stats.duplicate} duplicates, ${stats.failed} failed`
+      `Scraping complete: ${stats.new} new, ${stats.duplicate} duplicates, ${stats.failed} failed`,
     );
 
     return stats;
@@ -99,8 +102,8 @@ export class NewsScraperService {
    */
   private async processNewsItem(
     item: ParsedNewsItem,
-    source?: NewsSource
-  ): Promise<'new' | 'duplicate' | 'updated'> {
+    source?: NewsSource,
+  ): Promise<"new" | "duplicate" | "updated"> {
     try {
       // 检查是否已存在（基于 URL，排除已删除的）
       const existing = await this.prisma.news.findFirst({
@@ -112,7 +115,7 @@ export class NewsScraperService {
 
       if (existing) {
         this.logger.debug(`跳过重复新闻: ${item.title.substring(0, 50)}...`);
-        return 'duplicate';
+        return "duplicate";
       }
 
       // 使用 AI 分析新闻
@@ -120,7 +123,7 @@ export class NewsScraperService {
       const analysis = await this.aiAnalyzer.analyzeNews(
         item.title,
         item.content,
-        source?.category
+        source?.category,
       );
 
       // 存储到数据库
@@ -146,14 +149,21 @@ export class NewsScraperService {
         },
       });
 
-      this.logger.log(`✓ 成功保存新闻: ${item.title.substring(0, 50)}... (中文标题: ${analysis.titleCn ? '√' : '×'})`);
+      this.logger.log(
+        `✓ 成功保存新闻: ${item.title.substring(0, 50)}... (中文标题: ${analysis.titleCn ? "√" : "×"})`,
+      );
 
-      return 'new';
+      return "new";
     } catch (error: any) {
       // 检查是否是数据库唯一约束冲突
-      if (error.code === 'P2002' || error.message?.includes('Unique constraint')) {
-        this.logger.warn(`数据库唯一约束冲突，新闻已存在: ${item.title.substring(0, 50)}...`);
-        return 'duplicate';
+      if (
+        error.code === "P2002" ||
+        error.message?.includes("Unique constraint")
+      ) {
+        this.logger.warn(
+          `数据库唯一约束冲突，新闻已存在: ${item.title.substring(0, 50)}...`,
+        );
+        return "duplicate";
       }
 
       // 记录详细错误信息
@@ -235,9 +245,9 @@ export class NewsScraperService {
         },
       },
       orderBy: [
-        { impactScore: 'desc' },
-        { viewCount: 'desc' },
-        { bookmarkCount: 'desc' },
+        { impactScore: "desc" },
+        { viewCount: "desc" },
+        { bookmarkCount: "desc" },
       ],
       take: 10, // 最多10条trending
     });
@@ -246,7 +256,7 @@ export class NewsScraperService {
     await this.prisma.news.updateMany({
       where: {
         id: {
-          in: trendingNews.map(n => n.id),
+          in: trendingNews.map((n) => n.id),
         },
       },
       data: {
@@ -262,7 +272,7 @@ export class NewsScraperService {
    */
   async scrapeSingleSource(sourceId: string): Promise<number> {
     const sources = getEnabledSources();
-    const source = sources.find(s => s.id === sourceId);
+    const source = sources.find((s) => s.id === sourceId);
 
     if (!source) {
       throw new Error(`News source not found: ${sourceId}`);
@@ -277,16 +287,16 @@ export class NewsScraperService {
     for (const item of items) {
       try {
         const result = await this.processNewsItem(item, source);
-        if (result === 'new') newCount++;
+        if (result === "new") newCount++;
       } catch (error: any) {
         this.logger.error(
-          `Failed to process item from ${source.name}: ${error.message}`
+          `Failed to process item from ${source.name}: ${error.message}`,
         );
       }
     }
 
     this.logger.log(
-      `Scraped ${newCount} new items from ${source.name} (${items.length} total)`
+      `Scraped ${newCount} new items from ${source.name} (${items.length} total)`,
     );
 
     return newCount;
@@ -326,18 +336,18 @@ export class NewsScraperService {
           },
         }),
         this.prisma.news.groupBy({
-          by: ['category'],
+          by: ["category"],
           _count: true,
           where: { deletedAt: null },
         }),
         this.prisma.news.groupBy({
-          by: ['source'],
+          by: ["source"],
           _count: true,
           where: {
             deletedAt: null,
             source: { not: null },
           },
-          orderBy: { _count: { source: 'desc' } },
+          orderBy: { _count: { source: "desc" } },
           take: 10,
         }),
       ]);
@@ -346,12 +356,12 @@ export class NewsScraperService {
       totalNews,
       todayNews,
       last24Hours,
-      byCategory: byCategory.map(item => ({
+      byCategory: byCategory.map((item) => ({
         category: item.category,
         count: item._count,
       })),
-      bySource: bySource.map(item => ({
-        source: item.source || 'Unknown',
+      bySource: bySource.map((item) => ({
+        source: item.source || "Unknown",
         count: item._count,
       })),
     };

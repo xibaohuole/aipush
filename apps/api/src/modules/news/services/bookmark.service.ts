@@ -1,6 +1,6 @@
-import { Injectable, Logger, BadRequestException } from '@nestjs/common';
-import { PrismaService } from '../../../common/prisma/prisma.service';
-import { RedisService } from '../../../common/redis/redis.service';
+import { Injectable, Logger, BadRequestException } from "@nestjs/common";
+import { PrismaService } from "../../../common/prisma/prisma.service";
+import { RedisService } from "../../../common/redis/redis.service";
 
 /**
  * 书签服务
@@ -20,7 +20,7 @@ export class BookmarkService {
   async addBookmark(newsId: string, sessionId: string, userId?: string) {
     try {
       if (!userId && !sessionId) {
-        throw new BadRequestException('Either userId or sessionId is required');
+        throw new BadRequestException("Either userId or sessionId is required");
       }
 
       // 创建书签
@@ -48,7 +48,7 @@ export class BookmarkService {
       return bookmark;
     } catch (error: any) {
       // 如果是唯一约束冲突，说明已经收藏了
-      if (error.code === 'P2002') {
+      if (error.code === "P2002") {
         return await this.getBookmark(newsId, sessionId, userId);
       }
       throw error;
@@ -60,19 +60,19 @@ export class BookmarkService {
    */
   async removeBookmark(newsId: string, sessionId: string, userId?: string) {
     if (!userId && !sessionId) {
-      throw new BadRequestException('Either userId or sessionId is required');
+      throw new BadRequestException("Either userId or sessionId is required");
     }
 
     if (userId) {
       await this.prisma.bookmark.delete({
         where: {
-          userId_newsId: { userId, newsId }
+          userId_newsId: { userId, newsId },
         } as any,
       });
     } else {
       await this.prisma.bookmark.delete({
         where: {
-          sessionId_newsId: { sessionId, newsId }
+          sessionId_newsId: { sessionId, newsId },
         } as any,
       });
     }
@@ -100,13 +100,13 @@ export class BookmarkService {
     if (userId) {
       return await this.prisma.bookmark.findUnique({
         where: {
-          userId_newsId: { userId, newsId }
+          userId_newsId: { userId, newsId },
         } as any,
       });
     } else {
       return await this.prisma.bookmark.findUnique({
         where: {
-          sessionId_newsId: { sessionId, newsId }
+          sessionId_newsId: { sessionId, newsId },
         } as any,
       });
     }
@@ -122,21 +122,19 @@ export class BookmarkService {
     limit: number = 20,
   ) {
     if (!userId && !sessionId) {
-      throw new BadRequestException('Either userId or sessionId is required');
+      throw new BadRequestException("Either userId or sessionId is required");
     }
 
     const skip = (page - 1) * limit;
 
-    const where = userId
-      ? { userId }
-      : { sessionId };
+    const where = userId ? { userId } : { sessionId };
 
     const [items, total] = await Promise.all([
       this.prisma.bookmark.findMany({
         where,
         skip,
         take: limit,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
         include: {
           news: {
             select: {
@@ -174,7 +172,11 @@ export class BookmarkService {
   /**
    * 检查新闻是否被收藏
    */
-  async isBookmarked(newsId: string, sessionId: string, userId?: string): Promise<boolean> {
+  async isBookmarked(
+    newsId: string,
+    sessionId: string,
+    userId?: string,
+  ): Promise<boolean> {
     // 先检查 Redis
     const cacheKey = userId
       ? `bookmark:user:${userId}:${newsId}`
@@ -217,7 +219,7 @@ export class BookmarkService {
       select: { newsId: true },
     });
 
-    const bookmarkedIds = new Set(bookmarks.map(b => b.newsId));
+    const bookmarkedIds = new Set(bookmarks.map((b) => b.newsId));
 
     const result: Record<string, boolean> = {};
     for (const newsId of newsIds) {

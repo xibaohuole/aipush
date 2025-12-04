@@ -8,19 +8,19 @@ import {
   ParseIntPipe,
   DefaultValuePipe,
   NotFoundException,
-} from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
-import { PrismaService } from '../../../common/prisma/prisma.service';
-import { RedisService } from '../../../common/redis/redis.service';
-import { CacheStrategyService } from '../../../common/redis/cache-strategy.service';
-import { AIAnalyzerService } from '../services/ai-analyzer.service';
+} from "@nestjs/common";
+import { ApiTags, ApiOperation, ApiQuery } from "@nestjs/swagger";
+import { PrismaService } from "../../../common/prisma/prisma.service";
+import { RedisService } from "../../../common/redis/redis.service";
+import { CacheStrategyService } from "../../../common/redis/cache-strategy.service";
+import { AIAnalyzerService } from "../services/ai-analyzer.service";
 
 /**
  * 新闻 API 控制器
  * 提供新闻查询和管理接口
  */
-@ApiTags('news')
-@Controller('news')
+@ApiTags("news")
+@Controller("news")
 export class NewsController {
   constructor(
     private readonly prisma: PrismaService,
@@ -33,18 +33,18 @@ export class NewsController {
    * 获取新闻列表（支持分页和筛选）
    */
   @Get()
-  @ApiOperation({ summary: '获取新闻列表' })
-  @ApiQuery({ name: 'page', required: false, type: Number })
-  @ApiQuery({ name: 'limit', required: false, type: Number })
-  @ApiQuery({ name: 'category', required: false, type: String })
-  @ApiQuery({ name: 'region', required: false, type: String })
-  @ApiQuery({ name: 'search', required: false, type: String })
+  @ApiOperation({ summary: "获取新闻列表" })
+  @ApiQuery({ name: "page", required: false, type: Number })
+  @ApiQuery({ name: "limit", required: false, type: Number })
+  @ApiQuery({ name: "category", required: false, type: String })
+  @ApiQuery({ name: "region", required: false, type: String })
+  @ApiQuery({ name: "search", required: false, type: String })
   async getNews(
-    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
-    @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
-    @Query('category') category?: string,
-    @Query('region') region?: string,
-    @Query('search') search?: string,
+    @Query("page", new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query("limit", new DefaultValuePipe(20), ParseIntPipe) limit: number,
+    @Query("category") category?: string,
+    @Query("region") region?: string,
+    @Query("search") search?: string,
   ) {
     // 快速检查：如果数据库完全为空，返回特殊状态
     const quickCount = await this.prisma.news.count({
@@ -61,13 +61,14 @@ export class NewsController {
           total: 0,
           totalPages: 0,
         },
-        status: 'initializing',
-        message: 'News collection is in progress. Please wait a moment and refresh.',
+        status: "initializing",
+        message:
+          "News collection is in progress. Please wait a moment and refresh.",
       };
     }
 
     // 生成缓存键（包含所有查询参数）
-    const cacheKey = `news:list:p${page}:l${limit}:c${category || 'all'}:r${region || 'all'}:s${search || 'none'}`;
+    const cacheKey = `news:list:p${page}:l${limit}:c${category || "all"}:r${region || "all"}:s${search || "none"}`;
 
     // 尝试从缓存获取
     const cached = await this.cacheStrategy.get(cacheKey);
@@ -83,11 +84,11 @@ export class NewsController {
       isApproved: true,
     };
 
-    if (category && category !== 'All') {
+    if (category && category !== "All") {
       where.category = category;
     }
 
-    if (region && region !== 'All') {
+    if (region && region !== "All") {
       where.region = region;
     }
 
@@ -97,20 +98,23 @@ export class NewsController {
 
     if (search) {
       // 使用PostgreSQL全文搜索（tsvector + GIN索引）
-      const searchQuery = search.split(' ').filter(w => w.length > 0).join(' | ');
+      const searchQuery = search
+        .split(" ")
+        .filter((w) => w.length > 0)
+        .join(" | ");
 
       // 构建完整的SQL查询（支持category和region过滤）
       let whereClause = `WHERE deleted_at IS NULL AND is_approved = true AND search_vector @@ to_tsquery('english', $1)`;
-      let params: any[] = [searchQuery];
+      const params: any[] = [searchQuery];
       let paramIndex = 2;
 
-      if (category && category !== 'All') {
+      if (category && category !== "All") {
         whereClause += ` AND category = $${paramIndex}`;
         params.push(category);
         paramIndex++;
       }
 
-      if (region && region !== 'All') {
+      if (region && region !== "All") {
         whereClause += ` AND region = $${paramIndex}`;
         params.push(region);
         paramIndex++;
@@ -134,7 +138,10 @@ export class NewsController {
       `;
       params.push(limit, skip);
 
-      const rawItems: any[] = await this.prisma.$queryRawUnsafe(selectQuery, ...params);
+      const rawItems: any[] = await this.prisma.$queryRawUnsafe(
+        selectQuery,
+        ...params,
+      );
 
       // 格式化原始查询结果，确保数据类型正确
       items = rawItems.map((item: any) => ({
@@ -150,7 +157,10 @@ export class NewsController {
         category: item.category,
         region: item.region,
         impactScore: item.impactScore,
-        publishedAt: item.publishedAt instanceof Date ? item.publishedAt : new Date(item.publishedAt),
+        publishedAt:
+          item.publishedAt instanceof Date
+            ? item.publishedAt
+            : new Date(item.publishedAt),
         isTrending: item.isTrending,
         viewCount: item.viewCount,
         bookmarkCount: item.bookmarkCount,
@@ -159,9 +169,11 @@ export class NewsController {
 
       // 计算总数
       const countQuery = `SELECT COUNT(*) as count FROM news ${whereClause}`;
-      const countResult = await this.prisma.$queryRawUnsafe<[{count: bigint}]>(
+      const countResult = await this.prisma.$queryRawUnsafe<
+        [{ count: bigint }]
+      >(
         countQuery,
-        ...params.slice(0, -2) // 移除limit和offset
+        ...params.slice(0, -2), // 移除limit和offset
       );
       total = Number(countResult[0].count);
     } else {
@@ -172,9 +184,9 @@ export class NewsController {
           skip,
           take: limit,
           orderBy: [
-            { isTrending: 'desc' },
-            { impactScore: 'desc' },
-            { publishedAt: 'desc' },
+            { isTrending: "desc" },
+            { impactScore: "desc" },
+            { publishedAt: "desc" },
           ],
           select: {
             id: true,
@@ -220,8 +232,8 @@ export class NewsController {
   /**
    * 获取缓存统计信息
    */
-  @Get('cache/stats')
-  @ApiOperation({ summary: '获取缓存统计信息' })
+  @Get("cache/stats")
+  @ApiOperation({ summary: "获取缓存统计信息" })
   async getCacheStats() {
     const stats = this.cacheStrategy.getStats();
     return {
@@ -233,11 +245,11 @@ export class NewsController {
   /**
    * 清除AI新闻缓存
    */
-  @Delete('cache/ai-news')
-  @ApiOperation({ summary: '清除AI新闻缓存' })
+  @Delete("cache/ai-news")
+  @ApiOperation({ summary: "清除AI新闻缓存" })
   async clearAINewsCache() {
     try {
-      const deletedCount = await this.redisService.deleteByPattern('ai-news:*');
+      const deletedCount = await this.redisService.deleteByPattern("ai-news:*");
       return {
         success: true,
         message: `Successfully cleared ${deletedCount} cached items`,
@@ -249,8 +261,8 @@ export class NewsController {
       return {
         success: false,
         error: {
-          code: 'CACHE_CLEAR_FAILED',
-          message: 'Failed to clear cache',
+          code: "CACHE_CLEAR_FAILED",
+          message: "Failed to clear cache",
         },
       };
     }
@@ -259,11 +271,11 @@ export class NewsController {
   /**
    * 获取趋势新闻（必须放在 :id 路由之前避免冲突）
    */
-  @Get('trending/list')
-  @ApiOperation({ summary: '获取趋势新闻' })
-  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @Get("trending/list")
+  @ApiOperation({ summary: "获取趋势新闻" })
+  @ApiQuery({ name: "limit", required: false, type: Number })
   async getTrendingNews(
-    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+    @Query("limit", new DefaultValuePipe(10), ParseIntPipe) limit: number,
   ) {
     const items = await this.prisma.news.findMany({
       where: {
@@ -273,9 +285,9 @@ export class NewsController {
       },
       take: limit,
       orderBy: [
-        { impactScore: 'desc' },
-        { viewCount: 'desc' },
-        { publishedAt: 'desc' },
+        { impactScore: "desc" },
+        { viewCount: "desc" },
+        { publishedAt: "desc" },
       ],
       select: {
         id: true,
@@ -303,19 +315,21 @@ export class NewsController {
   /**
    * 获取单个新闻详情（使用动态TTL缓存）
    */
-  @Get(':id')
-  @ApiOperation({ summary: '获取新闻详情' })
-  async getNewsById(@Param('id') id: string) {
+  @Get(":id")
+  @ApiOperation({ summary: "获取新闻详情" })
+  async getNewsById(@Param("id") id: string) {
     const cacheKey = `news:detail:${id}`;
 
     // 尝试从缓存获取
     const cached = await this.cacheStrategy.get(cacheKey);
     if (cached) {
       // 异步增加浏览次数（不阻塞响应）
-      this.prisma.news.update({
-        where: { id },
-        data: { viewCount: { increment: 1 } },
-      }).catch(() => {});
+      this.prisma.news
+        .update({
+          where: { id },
+          data: { viewCount: { increment: 1 } },
+        })
+        .catch(() => {});
 
       return cached;
     }
@@ -326,7 +340,7 @@ export class NewsController {
     });
 
     if (!news || news.deletedAt) {
-      throw new NotFoundException('News not found');
+      throw new NotFoundException("News not found");
     }
 
     // 增加浏览次数
@@ -348,11 +362,11 @@ export class NewsController {
   /**
    * 获取分类统计
    */
-  @Get('stats/categories')
-  @ApiOperation({ summary: '获取分类统计' })
+  @Get("stats/categories")
+  @ApiOperation({ summary: "获取分类统计" })
   async getCategoryStats() {
     const stats = await this.prisma.news.groupBy({
-      by: ['category'],
+      by: ["category"],
       where: {
         deletedAt: null,
         isApproved: true,
@@ -362,7 +376,7 @@ export class NewsController {
       },
       orderBy: {
         _count: {
-          id: 'desc',
+          id: "desc",
         },
       },
     });
@@ -379,9 +393,9 @@ export class NewsController {
   /**
    * 增加书签计数
    */
-  @Post(':id/bookmark')
-  @ApiOperation({ summary: '增加书签' })
-  async addBookmark(@Param('id') id: string) {
+  @Post(":id/bookmark")
+  @ApiOperation({ summary: "增加书签" })
+  async addBookmark(@Param("id") id: string) {
     await this.prisma.news.update({
       where: { id },
       data: { bookmarkCount: { increment: 1 } },
@@ -389,16 +403,16 @@ export class NewsController {
 
     return {
       success: true,
-      message: 'Bookmark added',
+      message: "Bookmark added",
     };
   }
 
   /**
    * 减少书签计数
    */
-  @Post(':id/unbookmark')
-  @ApiOperation({ summary: '移除书签' })
-  async removeBookmark(@Param('id') id: string) {
+  @Post(":id/unbookmark")
+  @ApiOperation({ summary: "移除书签" })
+  async removeBookmark(@Param("id") id: string) {
     await this.prisma.news.update({
       where: { id },
       data: { bookmarkCount: { decrement: 1 } },
@@ -406,18 +420,18 @@ export class NewsController {
 
     return {
       success: true,
-      message: 'Bookmark removed',
+      message: "Bookmark removed",
     };
   }
 
   /**
    * 使用AI生成实时新闻
    */
-  @Get('ai/generate')
-  @ApiOperation({ summary: '使用AI生成实时新闻' })
-  @ApiQuery({ name: 'count', required: false, type: Number })
+  @Get("ai/generate")
+  @ApiOperation({ summary: "使用AI生成实时新闻" })
+  @ApiQuery({ name: "count", required: false, type: Number })
   async generateAINews(
-    @Query('count', new DefaultValuePipe(20), ParseIntPipe) count: number,
+    @Query("count", new DefaultValuePipe(20), ParseIntPipe) count: number,
   ) {
     try {
       const newsItems = await this.aiAnalyzer.generateRealtimeNews(count);
@@ -429,11 +443,10 @@ export class NewsController {
       return {
         success: false,
         error: {
-          code: 'AI_GENERATION_FAILED',
-          message: 'Failed to generate AI news',
+          code: "AI_GENERATION_FAILED",
+          message: "Failed to generate AI news",
         },
       };
     }
   }
-
 }
