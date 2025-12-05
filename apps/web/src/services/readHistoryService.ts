@@ -105,12 +105,12 @@ export async function checkReadStatus(
 }
 
 /**
- * 批量检查已读状态
+ * 批量检查已读状态（包含已读时间）
  */
 export async function checkMultipleReadStatus(
   newsIds: string[],
   userId?: string,
-): Promise<Record<string, boolean>> {
+): Promise<Record<string, { isRead: boolean; readAt?: string }>> {
   if (newsIds.length === 0) {
     return {};
   }

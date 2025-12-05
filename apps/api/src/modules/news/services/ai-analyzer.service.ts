@@ -544,7 +544,61 @@ CRITICAL: Your response must start with { and end with }. Do NOT wrap in markdow
         cleanedResponse = cleanedResponse.replace(/\s*```$/i, "");
         cleanedResponse = cleanedResponse.trim();
 
-        const newsItems = JSON.parse(cleanedResponse);
+        // 尝试修复常见的 JSON 错误
+        let newsItems: any;
+        try {
+          newsItems = JSON.parse(cleanedResponse);
+        } catch (parseError: any) {
+          this.logger.error(
+            `Failed to parse GLM response: ${parseError.message}`,
+          );
+          this.logger.debug(
+            `Response preview (first 500 chars): ${cleanedResponse.substring(0, 500)}`,
+          );
+          this.logger.debug(
+            `Response preview (last 500 chars): ${cleanedResponse.substring(Math.max(0, cleanedResponse.length - 500))}`,
+          );
+
+          // 尝试提取有效的 JSON 数组部分
+          try {
+            const arrayMatch = cleanedResponse.match(/\[[\s\S]*\]/);
+            if (arrayMatch) {
+              this.logger.debug(
+                "Attempting to extract JSON array from response...",
+              );
+              // 尝试修复常见问题：移除尾随的逗号、修复不完整的对象
+              let extracted = arrayMatch[0];
+
+              // 移除数组末尾的悬空逗号
+              extracted = extracted.replace(/,(\s*])/, "$1");
+
+              // 如果数组在中间被截断（最后一个元素不完整），移除它
+              const lastCommaIndex = extracted.lastIndexOf(",");
+              const lastBraceIndex = extracted.lastIndexOf("}");
+
+              if (lastCommaIndex > lastBraceIndex) {
+                // 存在悬空的逗号，说明最后一个元素可能不完整
+                extracted = extracted.substring(0, lastCommaIndex) + "]";
+                this.logger.debug(
+                  "Removed incomplete trailing element from array",
+                );
+              }
+
+              newsItems = JSON.parse(extracted);
+              this.logger.log(
+                "Successfully recovered partial response with array extraction",
+              );
+            } else {
+              throw parseError; // 无法提取，抛出原始错误
+            }
+          } catch (recoveryError: any) {
+            this.logger.error(
+              `Failed to recover from JSON parsing error: ${recoveryError.message}`,
+            );
+            // 继续下一次重试
+            continue;
+          }
+        }
 
         if (!Array.isArray(newsItems)) {
           this.logger.error("GLM response is not an array");
@@ -599,10 +653,30 @@ CRITICAL: Your response must start with { and end with }. Do NOT wrap in markdow
       );
       return allNewsItems;
     } catch (error: any) {
-      this.logger.error(
-        `Failed to generate realtime news: ${error.message}`,
-        error.stack,
-      );
+      this.logger.error(`Failed to generate realtime news: ${error.message}`);
+
+      // 如果是 JSON 解析错误，提供更多上下文
+      if (error.message?.includes("JSON")) {
+        this.logger.error(
+          "JSON parsing failed. This might be due to:",
+        );
+        this.logger.error(
+          "1. GLM API returning truncated response (hit token limit)",
+        );
+        this.logger.error("2. GLM API returning malformed JSON");
+        this.logger.error("3. Network issues causing incomplete response");
+        this.logger.error(
+          "Consider: reducing the count parameter or adjusting the prompt",
+        );
+      }
+
+      // 如果有部分新闻，仍然返回它们
+      if (allNewsItems.length > 0) {
+        this.logger.log(
+          `Returning ${allNewsItems.length} partially collected news items`,
+        );
+      }
+
       return allNewsItems; // 返回已收集的新闻，即使出错
     }
   }

@@ -29,6 +29,15 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
+    // 验证 REDIS_URL 格式
+    if (redisUrl && !this.isValidRedisUrl(redisUrl)) {
+      this.logger.error(
+        `Invalid REDIS_URL format: ${redisUrl}. Expected format: redis://[user:password@]hostname:port[/db]`,
+      );
+      this.logger.warn("Redis will be disabled due to invalid configuration");
+      return;
+    }
+
     try {
       // 如果提供了完整的 URL，使用 URL 连接
       if (redisUrl) {
@@ -92,6 +101,39 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       this.logger.error(`Failed to connect to Redis: ${error.message}`);
       this.logger.warn("Continuing without Redis cache");
       this.client = null;
+    }
+  }
+
+  /**
+   * 验证 Redis URL 格式
+   */
+  private isValidRedisUrl(url: string): boolean {
+    try {
+      // 基本格式检查：redis://[user:password@]hostname[:port][/db]
+      const redisUrlPattern =
+        /^redis:\/\/(?:[^:@]+:[^:@]+@)?([^:\/\s]+)(?::(\d+))?(?:\/(\d+))?$/;
+      const match = url.match(redisUrlPattern);
+
+      if (!match) {
+        return false;
+      }
+
+      const hostname = match[1];
+      const port = match[2] ? parseInt(match[2]) : 6379;
+
+      // 检查hostname不能为空且不能只是协议
+      if (!hostname || hostname === "redis") {
+        return false;
+      }
+
+      // 检查端口范围
+      if (port < 1 || port > 65535) {
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      return false;
     }
   }
 

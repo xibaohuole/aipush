@@ -8,6 +8,7 @@ import {
   Headers,
   ParseIntPipe,
   DefaultValuePipe,
+  BadRequestException,
 } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiQuery, ApiHeader } from "@nestjs/swagger";
 import { ReadHistoryService } from "../services/read-history.service";
@@ -19,6 +20,27 @@ import { ReadHistoryService } from "../services/read-history.service";
 @Controller("read-history")
 export class ReadHistoryController {
   constructor(private readonly readHistoryService: ReadHistoryService) {}
+
+  /**
+   * 验证 UUID 格式
+   */
+  private isValidUUID(uuid: string): boolean {
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(uuid);
+  }
+
+  /**
+   * 验证并返回 UUID，如果无效则抛出异常
+   */
+  private validateUUID(id: string, fieldName: string = "id"): string {
+    if (!this.isValidUUID(id)) {
+      throw new BadRequestException(
+        `Invalid ${fieldName} format. Expected a valid UUID.`,
+      );
+    }
+    return id;
+  }
 
   /**
    * 标记新闻为已读
@@ -33,6 +55,9 @@ export class ReadHistoryController {
     @Headers("x-user-id") userId: string | undefined,
     @Body() body: { readDuration?: number; scrollDepth?: number },
   ) {
+    // 验证 UUID 格式
+    this.validateUUID(newsId, "news ID");
+
     const readHistory = await this.readHistoryService.markAsRead(
       newsId,
       sessionId,
@@ -85,6 +110,9 @@ export class ReadHistoryController {
     @Headers("x-session-id") sessionId: string,
     @Headers("x-user-id") userId?: string,
   ) {
+    // 验证 UUID 格式
+    this.validateUUID(newsId, "news ID");
+
     const isRead = await this.readHistoryService.isRead(
       newsId,
       sessionId,
@@ -108,7 +136,13 @@ export class ReadHistoryController {
     @Headers("x-user-id") userId: string | undefined,
     @Query("newsIds") newsIds: string,
   ) {
-    const newsIdArray = newsIds.split(",");
+    const newsIdArray = newsIds.split(",").filter((id) => id.trim());
+
+    // 验证所有 UUID 格式
+    for (const newsId of newsIdArray) {
+      this.validateUUID(newsId.trim(), "news ID");
+    }
+
     const statuses = await this.readHistoryService.checkMultipleReadStatus(
       newsIdArray,
       sessionId,

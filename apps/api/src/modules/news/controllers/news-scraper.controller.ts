@@ -5,6 +5,7 @@ import {
   Param,
   HttpCode,
   HttpStatus,
+  BadRequestException,
 } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiResponse } from "@nestjs/swagger";
 import { NewsScraperService } from "../services/news-scraper.service";
@@ -19,6 +20,27 @@ export class NewsScraperController {
     private readonly newsScraperScheduler: NewsScraperScheduler,
     private readonly sourceHealthService: SourceHealthService,
   ) {}
+
+  /**
+   * 验证 UUID 格式
+   */
+  private isValidUUID(uuid: string): boolean {
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(uuid);
+  }
+
+  /**
+   * 验证并返回 UUID，如果无效则抛出异常
+   */
+  private validateUUID(id: string, fieldName: string = "id"): string {
+    if (!this.isValidUUID(id)) {
+      throw new BadRequestException(
+        `Invalid ${fieldName} format. Expected a valid UUID.`,
+      );
+    }
+    return id;
+  }
 
   @Post("trigger")
   @HttpCode(HttpStatus.OK)
@@ -67,6 +89,9 @@ export class NewsScraperController {
     description: "News source not found",
   })
   async scrapeSingleSource(@Param("sourceId") sourceId: string) {
+    // 验证 UUID 格式
+    this.validateUUID(sourceId, "source ID");
+
     const newCount = await this.newsScraperService.scrapeSingleSource(sourceId);
 
     return {
@@ -200,6 +225,9 @@ export class NewsScraperController {
     description: "Health status reset successfully",
   })
   async resetSourceHealth(@Param("sourceId") sourceId: string) {
+    // 验证 UUID 格式
+    this.validateUUID(sourceId, "source ID");
+
     await this.sourceHealthService.resetSourceHealth(sourceId);
 
     return {

@@ -8,6 +8,7 @@ import {
   ParseIntPipe,
   DefaultValuePipe,
   NotFoundException,
+  BadRequestException,
 } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiQuery } from "@nestjs/swagger";
 import { PrismaService } from "../../../common/prisma/prisma.service";
@@ -28,6 +29,27 @@ export class NewsController {
     private readonly cacheStrategy: CacheStrategyService,
     private readonly aiAnalyzer: AIAnalyzerService,
   ) {}
+
+  /**
+   * 验证 UUID 格式
+   */
+  private isValidUUID(uuid: string): boolean {
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(uuid);
+  }
+
+  /**
+   * 验证并返回 UUID，如果无效则抛出异常
+   */
+  private validateUUID(id: string, fieldName: string = "id"): string {
+    if (!this.isValidUUID(id)) {
+      throw new BadRequestException(
+        `Invalid ${fieldName} format. Expected a valid UUID.`,
+      );
+    }
+    return id;
+  }
 
   /**
    * 获取新闻列表（支持分页和筛选）
@@ -318,6 +340,9 @@ export class NewsController {
   @Get(":id")
   @ApiOperation({ summary: "获取新闻详情" })
   async getNewsById(@Param("id") id: string) {
+    // 验证 UUID 格式
+    this.validateUUID(id, "news ID");
+
     const cacheKey = `news:detail:${id}`;
 
     // 尝试从缓存获取
@@ -396,6 +421,9 @@ export class NewsController {
   @Post(":id/bookmark")
   @ApiOperation({ summary: "增加书签" })
   async addBookmark(@Param("id") id: string) {
+    // 验证 UUID 格式
+    this.validateUUID(id, "news ID");
+
     await this.prisma.news.update({
       where: { id },
       data: { bookmarkCount: { increment: 1 } },
@@ -413,6 +441,9 @@ export class NewsController {
   @Post(":id/unbookmark")
   @ApiOperation({ summary: "移除书签" })
   async removeBookmark(@Param("id") id: string) {
+    // 验证 UUID 格式
+    this.validateUUID(id, "news ID");
+
     await this.prisma.news.update({
       where: { id },
       data: { bookmarkCount: { decrement: 1 } },
